@@ -1,0 +1,6 @@
+XWorkflows
+==========
+
+XWorkflows is a library to add workflows, or state machines, to Python objects.
+
+# vim:set ft=rst:
