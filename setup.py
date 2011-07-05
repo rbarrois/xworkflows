@@ -12,7 +12,7 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
-    name = "XWorkflows",
+    name = "xworkflows",
     version = "0.1",
     author = "Raphaël Barrois",
     author_email = "raphael.barrois@polyconseil.fr",
@@ -22,11 +22,15 @@ setup(
     keywords = "workflow state machine automaton",
     url = "http://packages.python.org/xworkflows",
     package_dir = {'xworkflows': 'src/xworkflows'},
+    packages = ['xworkflows'],
     long_description=read('README'),
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
-        "Topic :: Software Development :: Libraries",
         "License :: OSI Approved :: BSD License",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
     ],
+    test_suite='tests',
 )
