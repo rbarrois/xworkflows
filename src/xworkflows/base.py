@@ -124,30 +124,24 @@ class WorkflowMeta(type):
     """
 
     def __new__(mcs, name, bases, attrs):
-        print "Building %s" % name
-        print "  Attrs: %s" % attrs
 
         if 'states' in attrs and 'transitions' in attrs and 'initial_state' in attrs:
 
             # States
             states = _setup_states(attrs['states'])
             attrs['states'] = states
-            print "  States: %s" % states
 
             # Transitions
             transitions = _setup_transitions(attrs['transitions'], states)
             attrs['transitions'] = transitions
-            print "  Transitions: %s" % transitions
 
             # Initial state
             initial_state = attrs['initial_state']
             attrs['initial_state'] = states[initial_state]
-            print "  Initial state: %s" % initial_state
 
             # Transition implementations
             implementations = _collect_implementations(attrs, attrs.get('state_field', 'state'), transitions)
             attrs['implementations'] = implementations
-            print "  Implementations: %s" % implementations
 
         return type.__new__(mcs, name, bases, attrs)
 
@@ -435,6 +429,9 @@ class StateList(object):
         except KeyError:
             raise AttributeError('StateList %s has no state named %s' % (self, name))
 
+    def __len__(self):
+        return len(self._states)
+
     def __getitem__(self, name):
         return self._states[name]
 
@@ -489,6 +486,9 @@ class TransitionList(object):
         self._transitions = {}
         for trdef in transitions:
             self._transitions[trdef.name] = trdef
+
+    def __len__(self):
+        return len(self._transitions)
 
     def __getattr__(self, name):
         try:
