@@ -21,7 +21,7 @@ setup(
     license = "BSD",
     keywords = "workflow state machine automaton",
     url = "http://packages.python.org/xworkflows",
-    package_dir = {'xworkflows': 'src/xworkflows'},
+    package_dir = {'': 'src'},
     packages = ['xworkflows'],
     long_description=read('README'),
     classifiers=[
