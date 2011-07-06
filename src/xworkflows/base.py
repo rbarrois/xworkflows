@@ -50,7 +50,10 @@ def _setup_transitions(tdef, states):
         elif len(transition) == 3:
             (name, source, target) = transition
             # TODO: check that 'source' and 'target' are State list/object.
-            tr = Transition(name, source, target)
+            if isinstance(target, State):
+                tr = Transition(name, source, target)
+            else:
+                tr = TransitionDef(name, source, target).transition(states)
         else:
             raise ValueError("Elements of the 'transition' attribute "
                              "a workflow should be a TransitionDef "
