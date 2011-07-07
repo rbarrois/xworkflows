@@ -429,6 +429,10 @@ class ImplementationList(object):
             if transition.name in self._transitions_mapping:
                 attrname = self._transitions_mapping[transition.name]
                 implem = self._implems[attrname]
+                if implem.transition != transition:
+                    raise ValueError(
+                        "Error for transition %s: implementation has been "
+                        "overridden by %s." % (transition, implem))
             else:
                 attrname = transition.name
                 if attrname in attrs:

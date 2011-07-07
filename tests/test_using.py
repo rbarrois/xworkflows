@@ -144,6 +144,8 @@ class WorkflowDeclarationImplementationsTestCase(unittest2.TestCase):
         implem = MyWorkflow.implementations['foobar']
         self.assertEqual('state', implem.field_name)
         self.assertEqual(MyWorkflow.transitions.foobar, implem.transition)
+        self.assertIn('foobar', MyWorkflow.implementations)
+        self.assertIn("'foobar'", repr(MyWorkflow.implementations))
 
     def test_renamed_state_field_implementation(self):
         class MyWorkflow(base.Workflow):
@@ -356,6 +358,97 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
         class MyWorkflowObject(base.WorkflowEnabled):
             foobar = 42
             wf = MyWorkflow
+
+    def test_override_renamed(self):
+        class MyWorkflow(base.Workflow):
+            states = ('foo', 'bar', 'baz')
+            transitions = (
+                ('foobar', 'foo', 'bar'),
+                ('gobaz', ('foo', 'bar'), 'baz'),
+                ('bazbar', 'baz', 'bar'),
+            )
+            initial_state = 'foo'
+
+            def foobar(self):
+                pass
+
+        class MyWorkflowObject(base.WorkflowEnabled):
+            wf = MyWorkflow
+
+            @base.transition('foobar')
+            def blah(self):
+                pass
+
+        self.assertFalse(hasattr(MyWorkflowObject, 'foobar'))
+
+    def test_override_conflict(self):
+        class MyWorkflow(base.Workflow):
+            states = ('foo', 'bar', 'baz')
+            transitions = (
+                ('foobar', 'foo', 'bar'),
+                ('gobaz', ('foo', 'bar'), 'baz'),
+                ('bazbar', 'baz', 'bar'),
+            )
+            initial_state = 'foo'
+
+            def foobar(self):
+                pass
+
+        def create_invalid_workflow_enabled():
+            class MyWorkflowObject(base.WorkflowEnabled):
+                wf = MyWorkflow
+
+                @base.transition('gobaz')
+                def foobar(self):
+                    pass
+
+        self.assertRaises(ValueError, create_invalid_workflow_enabled)
+
+    def test_override_with_invalid_wrapper(self):
+        class MyWorkflow(base.Workflow):
+            states = ('foo', 'bar', 'baz')
+            transitions = (
+                ('foobar', 'foo', 'bar'),
+                ('gobaz', ('foo', 'bar'), 'baz'),
+                ('bazbar', 'baz', 'bar'),
+            )
+            initial_state = 'foo'
+
+            def foobar(self):
+                pass
+
+        def create_invalid_workflow_enabled():
+            class MyWorkflowObject(base.WorkflowEnabled):
+                wf = MyWorkflow
+
+                @base.transition('blah')
+                def foobar(self):
+                    pass
+
+        self.assertRaises(ValueError, create_invalid_workflow_enabled)
+
+    def test_override_with_constant(self):
+        class MyWorkflow(base.Workflow):
+            states = ('foo', 'bar', 'baz')
+            transitions = (
+                ('foobar', 'foo', 'bar'),
+                ('gobaz', ('foo', 'bar'), 'baz'),
+                ('bazbar', 'baz', 'bar'),
+            )
+            initial_state = 'foo'
+
+            def foobar(self):
+                pass
+
+        def create_invalid_workflow_enabled():
+            class MyWorkflowObject(base.WorkflowEnabled):
+                wf = MyWorkflow
+
+                foobar = 42
+
+        self.assertRaises(ValueError, create_invalid_workflow_enabled)
+
+
 
     def test_dual_workflows_conflict(self):
 
