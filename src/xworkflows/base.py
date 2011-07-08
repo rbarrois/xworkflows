@@ -168,6 +168,16 @@ class WorkflowEnabledMeta(type):
         implementation was defined in the workflow, it keeps its name in the
         WorkflowEnabled object.
     """
+
+    @classmethod
+    def _add_workflow(mcs, workflow, state_field, attrs):
+        attrs[state_field] = StateProperty(workflow, state_field)
+
+    @classmethod
+    def _copy_implems(mcs, workflow, state_field):
+        return ImplementationList.copy_from(workflow.implementations,
+                                            state_field=state_field)
+
     def __new__(mcs, name, bases, attrs):
         workflows, renamed_state_fields = _find_workflows(attrs)
         for state_field, workflow in workflows.iteritems():
@@ -177,9 +187,9 @@ class WorkflowEnabledMeta(type):
                     "since there is already an attribute with that name in the "
                     "class definition (%s=%s)" %
                     (workflow, state_field, state_field, attrs[state_field]))
-            attrs[state_field] = StateProperty(workflow, state_field)
+            mcs._add_workflow(workflow, state_field, attrs)
 
-            implems = workflow.implementations.copy(state_field=state_field)
+            implems = mcs._copy_implems(workflow, state_field)
             implems.augment(attrs)
 
             implems.update_attrs(attrs)
@@ -245,13 +255,16 @@ class StateField(object):
         return self.workflow.transitions.available_from(self.state)
 
 
-class WorkflowEnabled(object):
+class BaseWorkflowEnabled(object):
     """Base class for all objects using a workflow.
 
     Attributes:
         _workflows (dict(str, Workflow)): Maps the name of a 'state_field' to
             the related Workflow
     """
+
+
+class WorkflowEnabled(BaseWorkflowEnabled):
     __metaclass__ = WorkflowEnabledMeta
 
 
@@ -287,28 +300,38 @@ class TransitionImplementation(object):
         if instance is None:
             return self
 
-        if not isinstance(instance, WorkflowEnabled):
+        if not isinstance(instance, BaseWorkflowEnabled):
             raise TypeError(
                 "Unable to apply transition %s to object %s, which is not "
                 "attached to a Workflow." % (self.transition, instance))
 
         @functools.wraps(self.implementation)
         def actual_implementation(*args, **kwargs):
-            current_state = getattr(instance, self.field_name)
-            if current_state not in self.transition.source:
-                raise InvalidTransitionError(
-                    "Transition %s isn't available from state %s." %
-                    (self.transition, current_state))
-
-            try:
-                res = self.implementation(instance, *args, **kwargs)
-            except AbortTransition:
-                return None
-
-            setattr(instance, self.field_name, self.transition.target)
-            return res
+            return self._run_implem(instance, *args, **kwargs)
 
         return actual_implementation
+
+    def _check_state(self, instance):
+        current_state = getattr(instance, self.field_name)
+        if current_state not in self.transition.source:
+            raise InvalidTransitionError(
+                "Transition %s isn't available from state %s." %
+                (self.transition, current_state))
+
+    def _run_implem(self, instance, *args, **kwargs):
+        self._check_state(instance)
+        try:
+            res = self._call_implem(instance, *args, **kwargs)
+        except AbortTransition:
+            return None
+        self._post_transition(instance, res, *args, **kwargs)
+        return res
+
+    def _call_implem(self, instance, *args, **kwargs):
+        return self.implementation(instance, *args, **kwargs)
+
+    def _post_transition(self, instance, res, *args, **kwargs):
+        setattr(instance, self.field_name, self.transition.target)
 
     def __repr__(self):
         return "<%s for %s on '%s': %s>" % (self.__class__.__name__, self.transition, self.field_name, self.implementation)
@@ -348,10 +371,11 @@ class ImplementationList(object):
         """Collect the implementations from a given attributes dict."""
         self.augment(attrs)
 
-    def copy(self, state_field):
-        copy = ImplementationList(state_field, self._transitions)
-        copy._transitions_mapping = self._transitions_mapping.copy()
-        for attr, implem in self._implems.iteritems():
+    @classmethod
+    def copy_from(cls, implemlist, state_field):
+        copy = cls(state_field, implemlist._transitions)
+        copy._transitions_mapping = implemlist._transitions_mapping.copy()
+        for attr, implem in implemlist._implems.iteritems():
             copy._implems[attr] = implem.copy(field_name=state_field)
 
         return copy
@@ -423,6 +447,10 @@ class ImplementationList(object):
                 "Can't override attribute %s=%s with %s" %
                 (attrname, other, implem))
 
+    @classmethod
+    def _add_implem(cls, attrs, attrname, implem):
+        attrs[attrname] = implem
+
     def update_attrs(self, attrs):
         for transition in self._transitions:
             trname = transition.name
@@ -444,7 +472,7 @@ class ImplementationList(object):
                 implem = NoOpTransitionImplementation(transition, self.state_field)
             if attrname in attrs:
                 self._assert_may_override(implem, attrs[attrname], attrname)
-            attrs[attrname] = implem
+            self._add_implem(attrs, attrname, implem)
         return attrs
 
     def __getitem__(self, trname):
