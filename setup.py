@@ -23,7 +23,7 @@ setup(
     url = "http://packages.python.org/xworkflows",
     package_dir = {'': 'src'},
     packages = ['xworkflows'],
-    long_description=read('README'),
+    long_description=read('README.rst'),
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
@@ -33,4 +33,5 @@ setup(
         'Programming Language :: Python',
     ],
     test_suite='tests',
+    test_requires=['unittest2'],
 )
