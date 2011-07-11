@@ -13,7 +13,6 @@ Contents:
 
    definition
    example
-   django
 
 Indices and tables
 ==================
