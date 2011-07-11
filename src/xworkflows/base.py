@@ -285,6 +285,7 @@ class TransitionImplementation(object):
         implementation (callable): the actual function to call when performing
             the transition.
     """
+    extra_kwargs = {}
 
     def __init__(self, transition, field_name, implementation):
         self.transition = transition
@@ -319,18 +320,22 @@ class TransitionImplementation(object):
                 (self.transition, current_state))
 
     def _run_implem(self, instance, *args, **kwargs):
+        cls_kwargs = {}
+        for kwarg, default in self.extra_kwargs.iteritems():
+            cls_kwargs[kwarg] = kwargs.pop(kwarg, default)
+
         self._check_state(instance)
         try:
-            res = self._call_implem(instance, *args, **kwargs)
+            res = self._call_implem(instance, cls_kwargs, *args, **kwargs)
         except AbortTransition:
             return None
-        self._post_transition(instance, res, *args, **kwargs)
+        self._post_transition(instance, res, cls_kwargs, *args, **kwargs)
         return res
 
-    def _call_implem(self, instance, *args, **kwargs):
+    def _call_implem(self, instance, cls_kwargs, *args, **kwargs):
         return self.implementation(instance, *args, **kwargs)
 
-    def _post_transition(self, instance, res, *args, **kwargs):
+    def _post_transition(self, instance, res, cls_kwargs, *args, **kwargs):
         setattr(instance, self.field_name, self.transition.target)
 
     def __repr__(self):
