@@ -249,7 +249,7 @@ class StateField(object):
         if attr.startswith('is_'):
             return self.state.name == attr[3:]
         else:
-            raise AttributeError('%r has no attribute %s.' % (self, attr))
+            return getattr(self.state, attr)
 
     def transitions(self):
         return self.workflow.transitions.available_from(self.state)

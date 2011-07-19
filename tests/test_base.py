@@ -131,6 +131,8 @@ class StateFieldTestCase(unittest2.TestCase):
         self.assertTrue(self.sf.is_foo)
         self.assertFalse(self.sf.is_bar)
         self.assertFalse(hasattr(self.sf, 'foo'))
+        self.assertEqual(self.foo.name, self.sf.name)
+        self.assertEqual(self.foo.title, self.sf.title)
 
 
 class TransitionImplementationTestCase(unittest2.TestCase):
