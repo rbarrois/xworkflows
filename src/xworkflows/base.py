@@ -243,11 +243,15 @@ class StateField(object):
         return str(self.state)
 
     def __repr__(self):
-        return repr(self.state)
+        return '<%s: %r>' % (self.__class__.__name__, self.state)
 
     def __getattr__(self, attr):
         if attr.startswith('is_'):
             return self.state.name == attr[3:]
+        elif attr == 'state':
+            raise AttributeError(
+                'Trying to access attribute %s of a non-initialized %r object!'
+                % (attr, self.__class__))
         else:
             return getattr(self.state, attr)
 
