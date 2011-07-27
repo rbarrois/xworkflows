@@ -573,6 +573,7 @@ class StateList(object):
     """A list of states."""
     def __init__(self, states):
         self._states = dict((st.name, st) for st in states)
+        self._order = tuple(st.name for st in states)
 
     def __getattr__(self, name):
         try:
@@ -590,7 +591,8 @@ class StateList(object):
         return '%s(%r)' % (self.__class__.__name__, self._states)
 
     def __iter__(self):
-        return self._states.itervalues()
+        for name in self._order:
+            yield self._states[name]
 
     def __contains__(self, state):
         return isinstance(state, State) and state.name in self._states and self._states[state.name] == state
@@ -632,8 +634,10 @@ class TransitionList(object):
             transitions (list of TransitionDef): the transitions to include.
         """
         self._transitions = {}
+        self._order = []
         for trdef in transitions:
             self._transitions[trdef.name] = trdef
+            self._order.append(trdef.name)
 
     def __len__(self):
         return len(self._transitions)
@@ -649,7 +653,8 @@ class TransitionList(object):
         return self._transitions[name]
 
     def __iter__(self):
-        return self._transitions.itervalues()
+        for name in self._order:
+            yield self._transitions[name]
 
     def __contains__(self, value):
         if isinstance(value, Transition):
