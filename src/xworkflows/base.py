@@ -13,7 +13,7 @@ class InvalidTransitionError(WorkflowError):
     """Raised when trying to perform a transition not available from current state."""
 
 
-class AbortTransition(Exception):
+class AbortTransition(WorkflowError):
     """Raised to prevent a transition from proceeding."""
 
 
