@@ -629,5 +629,74 @@ class CustomImplementationTestCase(unittest2.TestCase):
         self.assertEqual(self.MyWorkflow.states.foo, obj.state)
 
 
+class ExtendedTransitionImplementationTestCase(unittest2.TestCase):
+    """Tests extending TransitionImplementation with extra arguments."""
+
+    def setUp(self):
+        class MyWorkflow(base.Workflow):
+            states = ('foo', 'bar', 'baz')
+            transitions = (
+                ('foobar', 'foo', 'bar'),
+                ('gobaz', ('foo', 'bar'), 'baz'),
+                ('bazbar', 'baz', 'bar'),
+            )
+            initial_state = 'foo'
+
+        self.MyWorkflow = MyWorkflow
+
+    def test_implementation(self):
+        class MyImplementation(base.TransitionImplementation):
+            """Custom TransitionImplementation, with extra kwarg 'blah'."""
+            extra_kwargs = {'blah': 42}
+
+            @classmethod
+            def copy_from(cls, implem):
+                return cls(implem.transition, implem.field_name, implem.implementation)
+
+            def _post_transition(self, instance, res, cls_kwargs, *args, **kwargs):
+                super(MyImplementation, self)._post_transition(instance, res, cls_kwargs, *args, **kwargs)
+                instance.blah = cls_kwargs['blah']
+
+        # Helpers in order to use MyImplementation instead of base.TransitionImplementation
+        class MyImplementationList(base.ImplementationList):
+            @classmethod
+            def _add_implem(cls, attrs, attrname, implem):
+                attrs[attrname] = MyImplementation.copy_from(implem)
+
+        class MyWorkflowEnabledMeta(base.WorkflowEnabledMeta):
+            @classmethod
+            def _copy_implems(mcs, workflow, state_field):
+                return MyImplementationList.copy_from(workflow.implementations,
+                                                      state_field=state_field)
+
+        class MyWorkflowEnabled(base.BaseWorkflowEnabled):
+            __metaclass__ = MyWorkflowEnabledMeta
+
+
+        class MyWorkflowObject(MyWorkflowEnabled):
+            state = self.MyWorkflow()
+
+            def foobar(self):
+                return 1
+
+            def gobaz(self, blah=10):
+                return blah
+
+        obj = MyWorkflowObject()
+
+        # Transition doesn't know 'blah'
+        self.assertEqual(1, obj.foobar())
+        self.assertEqual(42, obj.blah)
+
+        # Transition knows 'blah'
+        self.assertEqual(13, obj.gobaz(blah=13))
+        self.assertEqual(13, obj.blah)
+
+        # Transition knows 'blah', but not provided => different defaults.
+        obj = MyWorkflowObject()
+        self.assertEqual(10, obj.gobaz())
+        self.assertEqual(42, obj.blah)
+
+
 if __name__ == '__main__':
     unittest2.main()

@@ -2,6 +2,7 @@
 """Base components of XWorkflows."""
 
 import functools
+import inspect
 import re
 
 
@@ -171,10 +172,12 @@ class WorkflowEnabledMeta(type):
 
     @classmethod
     def _add_workflow(mcs, workflow, state_field, attrs):
+        """Attach a workflow to the attribute list (create a StateProperty)."""
         attrs[state_field] = StateProperty(workflow, state_field)
 
     @classmethod
     def _copy_implems(mcs, workflow, state_field):
+        """Copy transition implementations from the workflow."""
         return ImplementationList.copy_from(workflow.implementations,
                                             state_field=state_field)
 
@@ -283,6 +286,9 @@ class TransitionImplementation(object):
     transition.
 
     Attributes:
+        extra_kwargs_kept (str list): list of extra keyword args captured by the
+            TransitionImplementation, but also expected by the actual
+            implementation; they won't be removed from the passed arguments.
         transition (Transition): the related transition
         field_name (str): the name of the field storing the state (which should
             be modified when the transition is called)
@@ -295,6 +301,8 @@ class TransitionImplementation(object):
         self.transition = transition
         self.field_name = field_name
         self.implementation = implementation
+        argspec = inspect.getargspec(implementation)
+        self.extra_kwargs_kept = [arg for arg in self.extra_kwargs if arg in argspec.args]
 
     def copy(self, field_name=None):
         if field_name is None:
@@ -326,7 +334,11 @@ class TransitionImplementation(object):
     def _run_implem(self, instance, *args, **kwargs):
         cls_kwargs = {}
         for kwarg, default in self.extra_kwargs.iteritems():
-            cls_kwargs[kwarg] = kwargs.pop(kwarg, default)
+            if kwarg in self.extra_kwargs_kept:
+                val = kwargs.get(kwarg, default)
+            else:
+                val = kwargs.pop(kwarg, default)
+            cls_kwargs[kwarg] = val
 
         self._check_state(instance)
         try:
