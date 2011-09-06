@@ -18,6 +18,10 @@ class AbortTransition(WorkflowError):
     """Raised to prevent a transition from proceeding."""
 
 
+class AbortTransitionSilently(WorkflowError):
+    """Raised to (silently) prevent a transition from proceeding."""
+
+
 def _setup_states(sdef):
     """Create a StateList object from a 'states' Workflow attribute."""
     sts = []
@@ -343,7 +347,7 @@ class TransitionImplementation(object):
         self._check_state(instance)
         try:
             res = self._call_implem(instance, cls_kwargs, *args, **kwargs)
-        except AbortTransition:
+        except AbortTransitionSilently:
             return None
         self._post_transition(instance, res, cls_kwargs, *args, **kwargs)
         return res

@@ -614,7 +614,7 @@ class CustomImplementationTestCase(unittest2.TestCase):
             state = self.MyWorkflow()
 
             def foobar(self):
-                raise base.AbortTransition
+                raise base.AbortTransitionSilently()
 
             def gobaz(self):
                 raise KeyError()
