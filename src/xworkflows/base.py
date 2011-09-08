@@ -103,7 +103,7 @@ class WorkflowMeta(type):
             pass
         # TODO: allow subclassing.
 
-        return type.__new__(mcs, name, bases, attrs)
+        return super(WorkflowMeta, mcs).__new__(mcs, name, bases, attrs)
 
 
 class Workflow(object):
