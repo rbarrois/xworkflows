@@ -241,7 +241,12 @@ class StateField(object):
         self.workflow = workflow
 
     def __eq__(self, other):
-        return isinstance(other, State) and self.state == other
+        if isinstance(other, State):
+            return self.state == other
+        elif isinstance(other, basestring):
+            return self.state.name == other
+        else:
+            return NotImplemented
 
     def __ne__(self, other):
         return not (self == other)
@@ -261,6 +266,13 @@ class StateField(object):
                 % (attr, self.__class__))
         else:
             return getattr(self.state, attr)
+
+    def __unicode__(self):
+        return unicode(self.state.title)
+
+    def __hash__(self):
+        # A StateField should compare equal to its name.
+        return hash(self.state.name)
 
     def transitions(self):
         return self.workflow.transitions.available_from(self.state)
