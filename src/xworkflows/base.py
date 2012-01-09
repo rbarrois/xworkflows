@@ -319,6 +319,7 @@ class TransitionImplementation(object):
         self.implementation = implementation
         argspec = inspect.getargspec(implementation)
         self.extra_kwargs_kept = [arg for arg in self.extra_kwargs if arg in argspec.args]
+        self.__doc__ = implementation.__doc__
 
     def copy(self, field_name=None):
         if field_name is None:

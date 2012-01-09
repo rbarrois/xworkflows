@@ -145,6 +145,7 @@ class TransitionImplementationTestCase(unittest2.TestCase):
 
     def test_creation(self):
         def blah(obj):
+            """doc for blah"""
             pass
 
         impl = base.TransitionImplementation(self.foobar, 'my_state', blah)
@@ -152,6 +153,7 @@ class TransitionImplementationTestCase(unittest2.TestCase):
         self.assertIn("'foobar'", repr(impl))
         self.assertIn("blah", repr(impl))
         self.assertIn('my_state', repr(impl))
+        self.assertEqual('doc for blah', impl.__doc__)
 
     def test_using(self):
         def blah(obj):
@@ -172,6 +174,7 @@ class TransitionImplementationTestCase(unittest2.TestCase):
 
     def test_copy(self):
         def blah(obj):
+            """docstring for blah"""
             pass
 
         impl = base.TransitionImplementation(self.foobar, 'my_state', blah)
@@ -180,6 +183,7 @@ class TransitionImplementationTestCase(unittest2.TestCase):
         self.assertEqual(copy.transition, impl.transition)
         self.assertEqual(copy.field_name, impl.field_name)
         self.assertEqual(copy.implementation, impl.implementation)
+        self.assertEqual(copy.__doc__, 'docstring for blah')
 
 
 class TransitionWrapperTestCase(unittest2.TestCase):
