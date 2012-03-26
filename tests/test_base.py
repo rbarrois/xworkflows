@@ -124,8 +124,8 @@ class StateFieldTestCase(unittest2.TestCase):
         self.assertEqual(self.foo, self.sf)
         self.assertNotEqual(self.sf, self.bar)
         self.assertNotEqual(self.bar, self.sf)
-        self.assertNotEqual(self.sf, 'foo')
-        self.assertNotEqual('foo', self.sf)
+        self.assertEqual(self.sf, 'foo')
+        self.assertEqual('foo', self.sf)
 
     def test_attributes(self):
         self.assertTrue(self.sf.is_foo)
