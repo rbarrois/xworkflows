@@ -17,7 +17,7 @@ class StateTestCase(unittest2.TestCase):
     def test_repr(self):
         a = base.State('foo', 'Foo')
         self.assertIn('foo', repr(a))
-        self.assertIn('Foo', repr(a))
+        self.assertNotIn('Foo', repr(a))
 
 
 class StateListTestCase(unittest2.TestCase):
