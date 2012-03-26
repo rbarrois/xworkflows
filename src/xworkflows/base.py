@@ -153,9 +153,9 @@ class TransitionList(object):
         return '%s(%r)' % (self.__class__.__name__, self._transitions.values())
 
 
-def _setup_states(sdef):
+def _setup_states(sdef, prev=()):
     """Create a StateList object from a 'states' Workflow attribute."""
-    sts = []
+    sts = list(prev)
     for state in sdef:
         if isinstance(state, State):
             st = state
@@ -168,21 +168,24 @@ def _setup_states(sdef):
             raise TypeError("Elements of the 'state' attribute of a "
                 "workflow should be a State object, a string or a pair of "
                 "strings; got %s instead." % (state,))
+        if st in sts:
+            sts.remove(st)
         sts.append(st)
     return StateList(sts)
 
 
-def _setup_transitions(tdef, states):
+def _setup_transitions(tdef, states, prev=()):
     """Create a TransitionList object from a 'transitions' Workflow attribute.
 
     Args:
         tdef: list of transition definitions
         states (StateList): already parsed state definitions.
+        prev (TransitionList): transition definitions from a parent.
 
     Returns:
         TransitionList: the list of transitions defined in the 'tdef' argument.
     """
-    trs = []
+    trs = list(prev)
     for transition in tdef:
         if isinstance(transition, TransitionDef):
             tr = transition.transition(states)
@@ -197,7 +200,15 @@ def _setup_transitions(tdef, states):
             raise TypeError("Elements of the 'transition' attribute of a "
                 "workflow should be a TransitionDef object, a string or a "
                 "pair of strings; got %s instead." % (transition,))
-        trs.append(tr)
+
+        at = None
+        for i, prev_tr in enumerate(trs):
+            if tr.name == prev_tr.name:
+                at = i
+        if at is not None:
+            trs[at] = tr
+        else:
+            trs.append(tr)
     return TransitionList(trs)
 
 
@@ -370,8 +381,10 @@ class ImplementationList(object):
         self.augment(attrs)
 
     @classmethod
-    def copy_from(cls, implemlist, state_field):
-        copy = cls(state_field, implemlist._transitions)
+    def copy_from(cls, implemlist, state_field, transitions=None):
+        if transitions is None:
+            transitions = implemlist._transitions
+        copy = cls(state_field, transitions)
         copy._transitions_mapping = implemlist._transitions_mapping.copy()
         for attr, implem in implemlist._implems.iteritems():
             copy._implems[attr] = implem.copy(field_name=state_field)
