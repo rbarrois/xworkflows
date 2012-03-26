@@ -5,10 +5,14 @@ from distutils.core import setup
 from distutils import cmd
 import os
 import re
+import sys
+
+root_dir = os.path.abspath(os.path.dirname(__file__))
+
 
 def get_version():
     version_re = re.compile(r"^VERSION = '([\w_.]+)'$")
-    with open(os.path.join(os.path.dirname(__file__), 'src', 'xworkflows', '__init__.py')) as f:
+    with open(os.path.join(root_dir, 'src', 'xworkflows', '__init__.py')) as f:
         for line in f:
             match = version_re.match(line[:-1])
             if match:
@@ -40,9 +44,12 @@ class test(cmd.Command):
         else:
             verbosity=0
 
+        ex_path = sys.path
+        sys.path.insert(0, os.path.join(root_dir, 'src'))
         suite = unittest.TestLoader().loadTestsFromName(self.test_suite)
 
         unittest.TextTestRunner(verbosity=verbosity).run(suite)
+        sys.path = ex_path
 
 
 setup(
