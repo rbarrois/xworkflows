@@ -8,7 +8,7 @@ import re
 
 def get_version():
     version_re = re.compile(r"^VERSION = '([\w_.]+)'$")
-    with open(os.path.join(os.path.dirname(__file__), 'xworkflows', '__init__.py')) as f:
+    with open(os.path.join(os.path.dirname(__file__), 'src', 'xworkflows', '__init__.py')) as f:
         for line in f:
             match = version_re.match(line[:-1])
             if match:
