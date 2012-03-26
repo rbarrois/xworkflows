@@ -142,7 +142,7 @@ class WorkflowDeclarationImplementationsTestCase(unittest2.TestCase):
                 return 42
 
         implem = MyWorkflow.implementations['foobar']
-        self.assertEqual('state', implem.field_name)
+        self.assertEqual(None, implem.field_name)
         self.assertEqual(MyWorkflow.transitions.foobar, implem.transition)
         self.assertIn('foobar', MyWorkflow.implementations)
         self.assertIn("'foobar'", repr(MyWorkflow.implementations))
