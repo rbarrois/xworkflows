@@ -1,4 +1,6 @@
+language: python
 script: "python setup.py test"
+install: pip install unittest2 --use-mirrors
 notifications:
   email: false
   irc: "irc.freenode.org#XelNext"
