@@ -610,6 +610,84 @@ def _find_workflows(attrs):
     return (workflows, renamed_state_fields)
 
 
+class StateField(object):
+    """Slightly enhanced wrapper around a base State object.
+
+    Knows about the workflow.
+    """
+    def __init__(self, state, workflow):
+        self.state = state
+        self.workflow = workflow
+        for st in workflow.states:
+            setattr(self, 'is_%s' % st.name, st.name == self.state.name)
+
+    def __eq__(self, other):
+        if isinstance(other, State):
+            return self.state == other
+        elif isinstance(other, basestring):
+            return self.state.name == other
+        else:
+            return NotImplemented
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __str__(self):
+        return str(self.state)
+
+    def __repr__(self):
+        return '<%s: %r>' % (self.__class__.__name__, self.state)
+
+    def __getattr__(self, attr):
+        if attr == 'state':
+            raise AttributeError(
+                'Trying to access attribute %s of a non-initialized %r object!'
+                % (attr, self.__class__))
+        else:
+            return getattr(self.state, attr)
+
+    def __unicode__(self):
+        return unicode(self.state.title)
+
+    def __hash__(self):
+        # A StateField should compare equal to its name.
+        return hash(self.state.name)
+
+    def transitions(self):
+        """Retrieve a list of transitions available from this state."""
+
+
+class StateProperty(object):
+    """Property-like attribute holding the state of a WorkflowEnabled object.
+
+    The state is stored in the internal __dict__ of the instance.
+    """
+
+    def __init__(self, workflow, state_field_name):
+        super(StateProperty, self).__init__()
+        self.workflow = workflow
+        self.field_name = state_field_name
+
+    def __get__(self, instance, owner):
+        """Retrieve the current state of the 'instance' object."""
+        if instance is None:
+            return self
+        state = instance.__dict__.get(self.field_name,
+                                      self.workflow.initial_state)
+        return StateField(state, self.workflow)
+
+    def __set__(self, instance, value):
+        """Set the current state of the 'instance' object."""
+        if not value in self.workflow.states:
+            raise ValueError("Value %s is not a valid state for workflow %s." %
+                    (value, self.workflow))
+        instance.__dict__[self.field_name] = value
+
+    def __str__(self):
+        return 'StateProperty(%s, %s)' % (self.workflow, self.field_name)
+        return self.workflow.transitions.available_from(self.state)
+
+
 class WorkflowEnabledMeta(type):
     """Base metaclass for all Workflow Enabled objects.
 
@@ -651,79 +729,6 @@ class WorkflowEnabledMeta(type):
 
         attrs['_workflows'] = workflows
         return super(WorkflowEnabledMeta, mcs).__new__(mcs, name, bases, attrs)
-
-
-class StateProperty(object):
-    """Property-like attribute holding the state of a WorkflowEnabled object.
-
-    The state is stored in the internal __dict__ of the instance.
-    """
-
-    def __init__(self, workflow, state_field_name):
-        super(StateProperty, self).__init__()
-        self.workflow = workflow
-        self.field_name = state_field_name
-
-    def __get__(self, instance, owner):
-        """Retrieve the current state of the 'instance' object."""
-        if instance is None:
-            return self
-        state = instance.__dict__.get(self.field_name,
-                                      self.workflow.initial_state)
-        return StateField(state, self.workflow)
-
-    def __set__(self, instance, value):
-        """Set the current state of the 'instance' object."""
-        if not value in self.workflow.states:
-            raise ValueError("Value %s is not a valid state for workflow %s." %
-                    (value, self.workflow))
-        instance.__dict__[self.field_name] = value
-
-    def __str__(self):
-        return 'StateProperty(%s, %s)' % (self.workflow, self.field_name)
-
-
-class StateField(object):
-    def __init__(self, state, workflow):
-        self.state = state
-        self.workflow = workflow
-        for st in workflow.states:
-            setattr(self, 'is_%s' % st.name, st.name == self.state.name)
-
-    def __eq__(self, other):
-        if isinstance(other, State):
-            return self.state == other
-        elif isinstance(other, basestring):
-            return self.state.name == other
-        else:
-            return NotImplemented
-
-    def __ne__(self, other):
-        return not (self == other)
-
-    def __str__(self):
-        return str(self.state)
-
-    def __repr__(self):
-        return '<%s: %r>' % (self.__class__.__name__, self.state)
-
-    def __getattr__(self, attr):
-        if attr == 'state':
-            raise AttributeError(
-                'Trying to access attribute %s of a non-initialized %r object!'
-                % (attr, self.__class__))
-        else:
-            return getattr(self.state, attr)
-
-    def __unicode__(self):
-        return unicode(self.state.title)
-
-    def __hash__(self):
-        # A StateField should compare equal to its name.
-        return hash(self.state.name)
-
-    def transitions(self):
-        return self.workflow.transitions.available_from(self.state)
 
 
 class BaseWorkflowEnabled(object):
