@@ -583,33 +583,6 @@ class Workflow(object):
             self.state_field = state_field
 
 
-def _find_workflows(attrs):
-    """Find workflow definition(s) in a WorkflowEnabled definition."""
-    workflows = {}
-    renamed_state_fields = set()
-
-    for k, v in attrs.iteritems():
-        # both Workflow definition and Workflow instances are allowed
-        if isinstance(v, Workflow):
-            wf = v
-        elif isinstance(v, type) and issubclass(v, Workflow):
-            wf = v()
-        else:
-            continue
-        if wf.state_field:
-            state_field = wf.state_field
-            renamed_state_fields.add(state_field)
-        else:
-            state_field = k
-        if state_field in workflows:
-            raise ValueError(
-                "Unable to define the state field for workflow %s to "
-                "%s since that name is already used for the state field of "
-                "workflow %s." % (wf, state_field, workflows[state_field]))
-        workflows[state_field] = wf
-    return (workflows, renamed_state_fields)
-
-
 class StateField(object):
     """Slightly enhanced wrapper around a base State object.
 
@@ -686,6 +659,33 @@ class StateProperty(object):
     def __str__(self):
         return 'StateProperty(%s, %s)' % (self.workflow, self.field_name)
         return self.workflow.transitions.available_from(self.state)
+
+
+def _find_workflows(attrs):
+    """Find workflow definition(s) in a WorkflowEnabled definition."""
+    workflows = {}
+    renamed_state_fields = set()
+
+    for k, v in attrs.iteritems():
+        # both Workflow definition and Workflow instances are allowed
+        if isinstance(v, Workflow):
+            wf = v
+        elif isinstance(v, type) and issubclass(v, Workflow):
+            wf = v()
+        else:
+            continue
+        if wf.state_field:
+            state_field = wf.state_field
+            renamed_state_fields.add(state_field)
+        else:
+            state_field = k
+        if state_field in workflows:
+            raise ValueError(
+                "Unable to define the state field for workflow %s to "
+                "%s since that name is already used for the state field of "
+                "workflow %s." % (wf, state_field, workflows[state_field]))
+        workflows[state_field] = wf
+    return (workflows, renamed_state_fields)
 
 
 class WorkflowEnabledMeta(type):
