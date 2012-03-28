@@ -72,6 +72,26 @@ class StateList(object):
         return isinstance(state, State) and state.name in self._states and self._states[state.name] == state
 
 
+class Transition(object):
+    """A transition.
+
+    Attributes:
+        name (str): the name of the Transition
+        source (State list): the 'source' states of the transition
+        target (State): the 'target' state of the transition
+    """
+    def __init__(self, name, source, target):
+        self.name = name
+        if isinstance(source, State):
+            source = [source]
+        self.source = source
+        self.target = target
+
+    def __repr__(self):
+        return '%s(%r, %r, %r)' % (self.__class__.__name__,
+                                   self.name, self.source, self.target)
+
+
 class TransitionDef(object):
     """A transition definition.
 
@@ -89,6 +109,15 @@ class TransitionDef(object):
         self.target = target
 
     def transition(self, states):
+        """Convert the TransitionDef into a Transition, binding to given states.
+
+        Args:
+            states (StateList): a list of states to use in the resulting
+                Transition
+
+        Returns:
+            Transition: the Transition that was defined.
+        """
         sources = [states[source] for source in self.source]
         target = states[self.target]
         return Transition(self.name, sources, target)
@@ -295,27 +324,13 @@ class TransitionImplementation(object):
         return "<%s for %s on '%s': %s>" % (self.__class__.__name__, self.transition, self.field_name, self.implementation)
 
 
-class Transition(object):
-    """A transition.
+class TransitionWrapper(object):
+    """Mark that a method should be used for a transition with a different name.
 
     Attributes:
-        name (str): the name of the Transition
-        source (State list): the 'source' states of the transition
-        target (State): the 'target' state of the transition
+        trname (str): the name of the transition that the method implements
+        func (function): the decorated method
     """
-    def __init__(self, name, source, target):
-        self.name = name
-        if isinstance(source, State):
-            source = [source]
-        self.source = source
-        self.target = target
-
-    def __repr__(self):
-        return '%s(%r, %r, %r)' % (self.__class__.__name__,
-                                   self.name, self.source, self.target)
-
-
-class TransitionWrapper(object):
 
     def __init__(self, trname):
         self.trname = trname
