@@ -628,6 +628,7 @@ class StateField(object):
 
     def transitions(self):
         """Retrieve a list of transitions available from this state."""
+        return self.workflow.transitions.available_from(self.state)
 
 
 class StateProperty(object):
@@ -658,7 +659,6 @@ class StateProperty(object):
 
     def __str__(self):
         return 'StateProperty(%s, %s)' % (self.workflow, self.field_name)
-        return self.workflow.transitions.available_from(self.state)
 
 
 def _find_workflows(attrs):
