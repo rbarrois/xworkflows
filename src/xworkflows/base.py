@@ -687,6 +687,8 @@ class StateField(object):
     def __init__(self, state, workflow):
         self.state = state
         self.workflow = workflow
+        for st in workflow.states:
+            setattr(self, 'is_%s' % st.name, st.name == self.state.name)
 
     def __eq__(self, other):
         if isinstance(other, State):
@@ -706,9 +708,7 @@ class StateField(object):
         return '<%s: %r>' % (self.__class__.__name__, self.state)
 
     def __getattr__(self, attr):
-        if attr.startswith('is_'):
-            return self.state.name == attr[3:]
-        elif attr == 'state':
+        if attr == 'state':
             raise AttributeError(
                 'Trying to access attribute %s of a non-initialized %r object!'
                 % (attr, self.__class__))
