@@ -384,11 +384,11 @@ class ImplementationList(object):
             name of the attribute holding the related transition.
     """
 
-    def __init__(self, state_field, transitions):
+    def __init__(self, state_field, workflow):
         self.state_field = state_field
         self._implems = {}
         self._transitions_mapping = {}
-        self._transitions = transitions
+        self._workflow = workflow
 
     def collect(self, attrs):
         """Collect the implementations from a given attributes dict."""
@@ -409,8 +409,8 @@ class ImplementationList(object):
         # First, try to find all TransitionWrapper.
         for name, value in attrs.iteritems():
             if isinstance(value, TransitionWrapper):
-                if value.trname in self._transitions:
-                    transition = self._transitions[value.trname]
+                if value.trname in self._workflow.transitions:
+                    transition = self._workflow.transitions[value.trname]
                     if value.trname in _local_mappings:
                         raise ValueError(
                             "Error for attribute %s: it defines implementation "
@@ -421,14 +421,14 @@ class ImplementationList(object):
                     add_implem(transition, name, value.func, value.before, value.after)
 
             elif callable(value):
-                if name in self._transitions:
+                if name in self._workflow.transitions:
                     _remaining_candidates[name] = value
 
         # Then, browse the remaining transitions and add callable if needed.
         _implemented = self._transitions_mapping.copy()
         _implemented.update(_local_mappings)
 
-        for transition in self._transitions:
+        for transition in self._workflow.transitions:
             trname = transition.name
             if trname in _remaining_candidates:
                 if trname not in _implemented or _implemented[trname] == trname:
@@ -458,7 +458,7 @@ class ImplementationList(object):
         attrs[attrname] = implem
 
     def update_attrs(self, attrs):
-        for transition in self._transitions:
+        for transition in self._workflow.transitions:
             trname = transition.name
             if transition.name in self._transitions_mapping:
                 attrname = self._transitions_mapping[transition.name]
@@ -679,7 +679,7 @@ class WorkflowEnabledMeta(type):
                     (workflow, state_field, state_field, attrs[state_field]))
             mcs._add_workflow(workflow, state_field, attrs)
 
-            implems = ImplementationList(state_field, workflow.transitions)
+            implems = ImplementationList(state_field, workflow)
             implems.collect(attrs)
             implems.update_attrs(attrs)
 
