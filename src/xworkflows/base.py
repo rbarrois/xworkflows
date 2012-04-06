@@ -401,8 +401,8 @@ class ImplementationList(object):
         _remaining_candidates = {}
 
         def add_implem(transition, attr_name, function, before=None, after=None):
-            implem = TransitionImplementation(transition, self.state_field,
-                function, before, after)
+            implem = self._workflow.implementation_class(
+                transition, self.state_field, function, before, after)
             self._implems[attr_name] = implem
             _local_mappings[transition.name] = attr_name
 
@@ -530,6 +530,8 @@ class Workflow(object):
         initial_state (State): initial state for the Workflow
         state_field (str): name of the instance attribute holding the state of
             instances.
+        implementation_class (TransitionImplementation subclass): class to use
+            for transition implementation wrapping.
 
     For each transition, a TransitionImplementation with the same name (unless
     another name has been specified through the use of the @transition
@@ -538,6 +540,7 @@ class Workflow(object):
     __metaclass__ = WorkflowMeta
 
     state_field = None
+    implementation_class = TransitionImplementation
 
     def __init__(self, state_field=None):
         """Create an instance of the workflow.
