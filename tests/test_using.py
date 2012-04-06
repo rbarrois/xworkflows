@@ -355,9 +355,13 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
             def blah(self):
                 pass
 
-        class MyWorkflowObject(base.WorkflowEnabled):
-            foobar = 42
-            wf = MyWorkflow
+        def create_invalid_workflow_enabled():
+            class MyWorkflowObject(base.WorkflowEnabled):
+                foobar = 42
+                wf = MyWorkflow
+
+        # No implementation for 'foobar' - data from the Workflow was ignored.
+        self.assertRaises(ValueError, create_invalid_workflow_enabled)
 
     def test_override_renamed(self):
         class MyWorkflow(base.Workflow):
@@ -580,7 +584,7 @@ class CustomImplementationTestCase(unittest2.TestCase):
         obj = MyWorkflowObject()
 
         self.assertEqual(self.MyWorkflow.states.foo, obj.state)
-        self.assertEqual('blah', obj.foobar('blah'))
+        self.assertEqual(None, obj.foobar('blah'))  # Workflow method ignored.
         self.assertEqual(self.MyWorkflow.states.bar, obj.state)
 
     def test_instance_defined(self):
