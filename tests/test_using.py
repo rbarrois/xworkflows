@@ -657,9 +657,9 @@ class ExtendedTransitionImplementationTestCase(unittest2.TestCase):
             def copy_from(cls, implem):
                 return cls(implem.transition, implem.field_name, implem.implementation)
 
-            def _post_transition(self, instance, res, cls_kwargs, *args, **kwargs):
-                super(MyImplementation, self)._post_transition(instance, res, cls_kwargs, *args, **kwargs)
-                instance.blah = cls_kwargs['blah']
+            def _post_transition(self, instance, res, *args, **kwargs):
+                super(MyImplementation, self)._post_transition(instance, res, *args, **kwargs)
+                instance.blah = kwargs['blah']
 
         # Helpers in order to use MyImplementation instead of base.TransitionImplementation
         class MyImplementationList(base.ImplementationList):
@@ -680,7 +680,7 @@ class ExtendedTransitionImplementationTestCase(unittest2.TestCase):
         class MyWorkflowObject(MyWorkflowEnabled):
             state = self.MyWorkflow()
 
-            def foobar(self):
+            def foobar(self, **kwargs):
                 return 1
 
             def gobaz(self, blah=10):
