@@ -500,34 +500,16 @@ class ExtendedTransitionImplementationTestCase(unittest2.TestCase):
     def test_implementation(self):
         class MyImplementation(base.TransitionImplementation):
             """Custom TransitionImplementation, with extra kwarg 'blah'."""
-            extra_kwargs = {'blah': 42}
-
-            @classmethod
-            def copy_from(cls, implem):
-                return cls(implem.transition, implem.field_name, implem.implementation)
 
             def _post_transition(self, instance, res, *args, **kwargs):
                 super(MyImplementation, self)._post_transition(instance, res, *args, **kwargs)
-                instance.blah = kwargs['blah']
+                instance.blah = kwargs.get('blah', 42)
 
-        # Helpers in order to use MyImplementation instead of base.TransitionImplementation
-        class MyImplementationList(base.ImplementationList):
-            @classmethod
-            def _add_implem(cls, attrs, attrname, implem):
-                attrs[attrname] = MyImplementation.copy_from(implem)
+        class MyWorkflow(self.MyWorkflow):
+            implementation_class = MyImplementation
 
-        class MyWorkflowEnabledMeta(base.WorkflowEnabledMeta):
-            @classmethod
-            def _copy_implems(mcs, workflow, state_field):
-                return MyImplementationList.copy_from(workflow.implementations,
-                                                      state_field=state_field)
-
-        class MyWorkflowEnabled(base.BaseWorkflowEnabled):
-            __metaclass__ = MyWorkflowEnabledMeta
-
-
-        class MyWorkflowObject(MyWorkflowEnabled):
-            state = self.MyWorkflow()
+        class MyWorkflowObject(base.WorkflowEnabled):
+            state = MyWorkflow()
 
             def foobar(self, **kwargs):
                 return 1
