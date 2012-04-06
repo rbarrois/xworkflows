@@ -402,17 +402,6 @@ class ImplementationList(object):
         self._transitions_mapping = {}
         self._transitions = transitions
 
-    @classmethod
-    def copy_from(cls, implemlist, state_field, transitions=None):
-        if transitions is None:
-            transitions = implemlist._transitions
-        copy = cls(state_field, transitions)
-        copy._transitions_mapping = implemlist._transitions_mapping.copy()
-        for attr, implem in implemlist._implems.iteritems():
-            copy._implems[attr] = implem.copy(field_name=state_field)
-
-        return copy
-
     def collect(self, attrs):
         """Collect the implementations from a given attributes dict."""
         """Augment the list of implementations from a given attributes dict."""
