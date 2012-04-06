@@ -714,12 +714,6 @@ class WorkflowEnabledMeta(type):
         """Attach a workflow to the attribute list (create a StateProperty)."""
         attrs[state_field] = StateProperty(workflow, state_field)
 
-    @classmethod
-    def _copy_implems(mcs, workflow, state_field):
-        """Copy transition implementations from the workflow."""
-        return ImplementationList.copy_from(workflow.implementations,
-                                            state_field=state_field)
-
     def __new__(mcs, name, bases, attrs):
         workflows, renamed_state_fields = _find_workflows(attrs)
         for state_field, workflow in workflows.iteritems():
