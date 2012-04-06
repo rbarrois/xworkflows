@@ -402,10 +402,6 @@ class ImplementationList(object):
         self._transitions_mapping = {}
         self._transitions = transitions
 
-    def collect(self, attrs):
-        """Collect the implementations from a given attributes dict."""
-        self.augment(attrs)
-
     @classmethod
     def copy_from(cls, implemlist, state_field, transitions=None):
         if transitions is None:
@@ -417,7 +413,8 @@ class ImplementationList(object):
 
         return copy
 
-    def augment(self, attrs):
+    def collect(self, attrs):
+        """Collect the implementations from a given attributes dict."""
         """Augment the list of implementations from a given attributes dict."""
         # Store the transition name => attribute name mapping for
         # implementations discovered in the attrs dict
