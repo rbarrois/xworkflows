@@ -550,18 +550,6 @@ class WorkflowMeta(type):
         new_class.state_field = attrs.get('state_field',
             getattr(new_class, 'state_field', None))
 
-        if hasattr(new_class, 'implementations'):
-            new_class.implementations = ImplementationList.copy_from(
-                new_class.implementations,
-                state_field=new_class.state_field,
-                transitions=new_class.transitions)
-        else:
-            new_class.implementations = ImplementationList(
-                new_class.state_field,
-                new_class.transitions)
-
-        new_class.implementations.augment(attrs)
-
         return new_class
 
 
