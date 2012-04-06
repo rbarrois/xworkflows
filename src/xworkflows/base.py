@@ -251,23 +251,23 @@ class TransitionImplementation(object):
     transition.
 
     Attributes:
-        extra_kwargs_kept (str list): list of extra keyword args captured by the
-            TransitionImplementation, but also expected by the actual
-            implementation; they won't be removed from the passed arguments.
         transition (Transition): the related transition
         field_name (str): the name of the field storing the state (which should
             be modified when the transition is called)
         implementation (callable): the actual function to call when performing
             the transition.
+        before (callable): optional callable to call *before* performing the
+            transition (but after state checks). If the return value evaluates
+            to False, the transition will be silently aborted.
+        after (callable): optional callable to call *after* performing the
+            transition (once the state has changed).
     """
-    extra_kwargs = {}
-
-    def __init__(self, transition, field_name, implementation):
+    def __init__(self, transition, field_name, implementation, before=None, after=None):
         self.transition = transition
         self.field_name = field_name
+        self.before = before
         self.implementation = implementation
-        argspec = inspect.getargspec(implementation)
-        self.extra_kwargs_kept = [arg for arg in self.extra_kwargs if arg in argspec.args]
+        self.after = after
         self.__doc__ = implementation.__doc__
 
     def copy(self, field_name=None):
@@ -297,28 +297,37 @@ class TransitionImplementation(object):
                 "Transition %s isn't available from state %s." %
                 (self.transition, current_state))
 
+    def _pre_transition(self, instance, *args, **kwargs):
+        if self.before is not None:
+            return self.before(instance, *args, **kwargs)
+        return True
+
     def _run_implem(self, instance, *args, **kwargs):
-        cls_kwargs = {}
-        for kwarg, default in self.extra_kwargs.iteritems():
-            if kwarg in self.extra_kwargs_kept:
-                val = kwargs.get(kwarg, default)
-            else:
-                val = kwargs.pop(kwarg, default)
-            cls_kwargs[kwarg] = val
+        """Run the transition, with all checks."""
 
         self._check_state(instance)
+        # Call hooks.
+        if not self._pre_transition(instance, *args, **kwargs):
+            return
+
         try:
-            res = self._call_implem(instance, cls_kwargs, *args, **kwargs)
+            res = self._during_transition(instance, *args, **kwargs)
         except AbortTransitionSilently:
-            return None
-        self._post_transition(instance, res, cls_kwargs, *args, **kwargs)
+            return
+
+        setattr(instance, self.field_name, self.transition.target)
+
+        # Call hooks.
+        self._post_transition(instance, res, *args, **kwargs)
         return res
 
-    def _call_implem(self, instance, cls_kwargs, *args, **kwargs):
+    def _during_transition(self, instance, *args, **kwargs):
         return self.implementation(instance, *args, **kwargs)
 
-    def _post_transition(self, instance, res, cls_kwargs, *args, **kwargs):
-        setattr(instance, self.field_name, self.transition.target)
+    def _post_transition(self, instance, res, *args, **kwargs):
+        """Performs post-transition actions."""
+        if self.after is not None:
+            self.after(instance, res, *args, **kwargs)
 
     def __repr__(self):
         return "<%s for %s on '%s': %s>" % (self.__class__.__name__, self.transition, self.field_name, self.implementation)
@@ -332,8 +341,10 @@ class TransitionWrapper(object):
         func (function): the decorated method
     """
 
-    def __init__(self, trname):
+    def __init__(self, trname, before=None, after=None):
         self.trname = trname
+        self.before = before
+        self.after = after
         self.func = None
 
     def __call__(self, func):
@@ -345,20 +356,20 @@ class TransitionWrapper(object):
             raise ValueError(
                 "Can't use a TransitionWrapper %s for transition %s." %
                 (self.trname, transition))
-        return TransitionImplementation(transition, field_name, self.func)
+        return TransitionImplementation(transition, field_name, self.func, self.before, self.after)
 
     def __repr__(self):
         return "<%s for %r: %s>" % (self.__class__.__name__, self.trname, self.func)
 
 
-def transition(trname):
+def transition(trname, before=None, after=None):
     """Decorator to declare a function as a transition implementation.
 
     This should be used only when that function should be used for a transition
     with a different name.
     """
 
-    return TransitionWrapper(trname)
+    return TransitionWrapper(trname, before=before, after=after)
 
 
 def noop(instance, *args, **kwargs):
@@ -695,9 +706,7 @@ class WorkflowEnabledMeta(type):
     - one class attribute for each 'state_field' of the attached workflows,
     - a '_workflows' attribute, a dict mapping each state_field to the related
         Workflow,
-    - one class attribute for each transition for each attached workflow; if an
-        implementation was defined in the workflow, it keeps its name in the
-        WorkflowEnabled object.
+    - one class attribute for each transition for each attached workflow
     """
 
     @classmethod
@@ -722,9 +731,8 @@ class WorkflowEnabledMeta(type):
                     (workflow, state_field, state_field, attrs[state_field]))
             mcs._add_workflow(workflow, state_field, attrs)
 
-            implems = mcs._copy_implems(workflow, state_field)
-            implems.augment(attrs)
-
+            implems = ImplementationList(state_field, workflow.transitions)
+            implems.collect(attrs)
             implems.update_attrs(attrs)
 
         attrs['_workflows'] = workflows
