@@ -528,8 +528,7 @@ class ImplementationList(object):
 class WorkflowMeta(type):
     """Base metaclass for all Workflows.
 
-    Sets the 'states', 'transitions', 'initial_state', and 'implementations'
-    attributes.
+    Sets the 'states', 'transitions', and 'initial_state' attributes.
     """
 
     def __new__(mcs, name, bases, attrs):
@@ -559,8 +558,6 @@ class Workflow(object):
     Attributes:
         states (StateList): list of states of this Workflow
         transitions (TransitionList): list of Transitions of this Workflow
-        implementations (dict(str, TransitionImplementation): mapping of
-            transition name to implementation
         initial_state (State): initial state for the Workflow
         state_field (str): name of the instance attribute holding the state of
             instances.
