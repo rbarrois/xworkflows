@@ -346,13 +346,6 @@ class TransitionWrapper(object):
         self.func = func
         return self
 
-    def get_implem(self, transition, field_name):
-        if transition.name != self.trname:
-            raise ValueError(
-                "Can't use a TransitionWrapper %s for transition %s." %
-                (self.trname, transition))
-        return TransitionImplementation(transition, field_name, self.func, self.before, self.after)
-
     def __repr__(self):
         return "<%s for %r: %s>" % (self.__class__.__name__, self.trname, self.func)
 
@@ -407,9 +400,11 @@ class ImplementationList(object):
         # as transition implementations
         _remaining_candidates = {}
 
-        def add_implem(transition_name, attr_name, implem):
+        def add_implem(transition, attr_name, function, before=None, after=None):
+            implem = TransitionImplementation(transition, self.state_field,
+                function, before, after)
             self._implems[attr_name] = implem
-            _local_mappings[transition_name] = attr_name
+            _local_mappings[transition.name] = attr_name
 
         # First, try to find all TransitionWrapper.
         for name, value in attrs.iteritems():
@@ -423,8 +418,7 @@ class ImplementationList(object):
                             "as %s." % (name, value, transition,
                                 self._implems[_local_mappings[value.trname]]))
 
-                    add_implem(transition.name, name,
-                        value.get_implem(transition, self.state_field))
+                    add_implem(transition, name, value.func, value.before, value.after)
 
             elif callable(value):
                 if name in self._transitions:
@@ -439,8 +433,7 @@ class ImplementationList(object):
             if trname in _remaining_candidates:
                 if trname not in _implemented or _implemented[trname] == trname:
                     value = _remaining_candidates[transition.name]
-                    add_implem(transition.name, transition.name,
-                        TransitionImplementation(transition, self.state_field, value))
+                    add_implem(transition, transition.name, value)
 
         self._transitions_mapping.update(_local_mappings)
 

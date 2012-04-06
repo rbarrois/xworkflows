@@ -181,27 +181,6 @@ class TransitionWrapperTestCase(unittest2.TestCase):
     def test_txt(self):
         self.assertIn('foobar', repr(self.wrapper))
 
-    def test_using(self):
-        def blah(obj):
-            pass
-
-        tr = base.Transition('foobar', base.State('foo'), base.State('bar'))
-
-        res = self.wrapper(blah).get_implem(tr, 'my_state')
-        self.assertEqual(tr, res.transition)
-        self.assertEqual(blah, res.implementation)
-        self.assertEqual('my_state', res.field_name)
-
-    def test_invalid_use(self):
-        @self.wrapper
-        def blah(obj):
-            pass
-
-        tr = base.Transition('foobaz', base.State('foo'), base.State('baz'))
-
-        self.assertRaises(ValueError, self.wrapper.get_implem, tr, 'my_state')
-
-
 
 if __name__ == '__main__':
     unittest2.main()
