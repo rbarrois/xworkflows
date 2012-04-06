@@ -172,19 +172,6 @@ class TransitionImplementationTestCase(unittest2.TestCase):
 
         self.assertRaises(TypeError, getattr, o, 'foobar')
 
-    def test_copy(self):
-        def blah(obj):
-            """docstring for blah"""
-            pass
-
-        impl = base.TransitionImplementation(self.foobar, 'my_state', blah)
-
-        copy = impl.copy()
-        self.assertEqual(copy.transition, impl.transition)
-        self.assertEqual(copy.field_name, impl.field_name)
-        self.assertEqual(copy.implementation, impl.implementation)
-        self.assertEqual(copy.__doc__, 'docstring for blah')
-
 
 class TransitionWrapperTestCase(unittest2.TestCase):
 

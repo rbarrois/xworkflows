@@ -270,11 +270,6 @@ class TransitionImplementation(object):
         self.after = after
         self.__doc__ = implementation.__doc__
 
-    def copy(self, field_name=None):
-        if field_name is None:
-            field_name = self.field_name
-        return TransitionImplementation(self.transition, field_name, self.implementation)
-
     def __get__(self, instance, owner):
         if instance is None:
             return self
@@ -415,14 +410,7 @@ class ImplementationList(object):
 
         # First, try to find all TransitionImplementation and TransitionWrapper.
         for name, value in attrs.iteritems():
-            if isinstance(value, TransitionImplementation):
-                if value.transition in self._transitions:
-                    if value.field_name != self.state_field:
-                        # State_field was overriden at some point
-                        value = value.copy(field_name=self.state_field)
-                    self._implems[name] = value
-                    _local_mappings[value.transition.name] = name
-            elif isinstance(value, TransitionWrapper):
+            if isinstance(value, TransitionWrapper):
                 if value.trname in self._transitions:
                     transition = self._transitions[value.trname]
                     if value.trname in _local_mappings:
