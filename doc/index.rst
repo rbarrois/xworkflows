@@ -133,7 +133,7 @@ Resources
 
 * Package on PyPI: http://pypi.python.org/pypi/xworkflows
 * Repository and issues on GitHub: http://github.com/rbarrois/xworkflows
-* Doc on http://readthedocs.org/doc/xworkflows/
+* Doc on http://readthedocs.org/docs/xworkflows/
 
 
 Indices and tables
