@@ -8,22 +8,22 @@ Workflow definition
 There are several ways of defining a :class:`Workflow`, but all use a common structure::
 
     class MyWorkflow(xworkflows.Workflow):
-        states = {
-            'init': _(u"Initial state"),
-            'ready': _(u"Ready"),
-            'active': _(u"Active"),
-            'done': _(u"Done"),
-            'cancelled': _(u"Cancelled"),
-        }
+        states = (
+            ('init', _(u"Initial state")),
+            ('ready', _(u"Ready")),
+            ('active', _(u"Active")),
+            ('done', _(u"Done")),
+            ('cancelled', _(u"Cancelled")),
+        )
 
         initial_state = 'init'
 
-        transitions = {
-            'prepare': ('init', 'ready'),
-            'activate': ('ready', 'active'),
-            'complete': ('active', 'done'),
-            'cancelled': (('ready', 'active'), 'cancelled'),
-        }
+        transitions = (
+            ('prepare', 'init', 'ready'),
+            ('activate', 'ready', 'active'),
+            ('complete', 'active', 'done'),
+            ('cancelled', ('ready', 'active'), 'cancelled'),
+        )
 
 State list
 ----------
