@@ -155,15 +155,6 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
         self.assertEqual(self.MyWorkflow.initial_state, obj.state)
         self.assertEqual(2, len(list(obj.state.transitions())))
 
-    def test_alt_state_field(self):
-        class MyWorkflowObject(base.WorkflowEnabled):
-            wf = self.MyWorkflow('my_state')
-
-        obj = MyWorkflowObject()
-        self.assertEqual(self.MyWorkflow.initial_state, obj.my_state)
-        self.assertTrue(isinstance(obj.wf, self.MyWorkflow))
-        self.assertFalse(hasattr(obj, 'state'))
-
     def test_state_setting(self):
         class MyWorkflowObject(base.WorkflowEnabled):
             state = self.MyWorkflow()
@@ -171,16 +162,6 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
         obj = MyWorkflowObject()
 
         self.assertRaises(ValueError, setattr, obj, 'state', base.State('a', 'A'))
-
-    def test_state_field_conflict(self):
-        self.MyWorkflow.state_field = 'state'
-
-        def create_invalid_workflow_enabled():
-            class MyWorkflowObject(base.WorkflowEnabled):
-                wf = self.MyWorkflow
-                state = 42
-
-        self.assertRaises(ValueError, create_invalid_workflow_enabled)
 
     def test_implementation_conflict(self):
         def create_invalid_workflow_enabled():
@@ -309,15 +290,6 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
             class MyWorkflowObject(base.WorkflowEnabled):
                 state1 = self.MyWorkflow()
                 state2 = self.MyWorkflow()
-
-        self.assertRaises(ValueError, create_invalid_workflow_enabled)
-
-    def test_dual_workflows_state_field_conflict(self):
-
-        def create_invalid_workflow_enabled():
-            class MyWorkflowObject(base.WorkflowEnabled):
-                wf1 = self.MyWorkflow(state_field='foo')
-                wf2 = self.MyWorkflow(state_field='foo')
 
         self.assertRaises(ValueError, create_invalid_workflow_enabled)
 

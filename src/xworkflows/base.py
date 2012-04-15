@@ -525,9 +525,6 @@ class WorkflowMeta(type):
         if initial_state is not None:
             new_class.initial_state = new_class.states[initial_state]
 
-        new_class.state_field = attrs.get('state_field',
-            getattr(new_class, 'state_field', None))
-
         return new_class
 
 
@@ -541,8 +538,6 @@ class Workflow(object):
         states (StateList): list of states of this Workflow
         transitions (TransitionList): list of Transitions of this Workflow
         initial_state (State): initial state for the Workflow
-        state_field (str): name of the instance attribute holding the state of
-            instances.
         implementation_class (TransitionImplementation subclass): class to use
             for transition implementation wrapping.
 
@@ -552,16 +547,7 @@ class Workflow(object):
     """
     __metaclass__ = WorkflowMeta
 
-    state_field = None
     implementation_class = TransitionImplementation
-
-    def __init__(self, state_field=None):
-        """Create an instance of the workflow.
-
-        This only allows overriding the 'state_field' attribute.
-        """
-        if state_field:
-            self.state_field = state_field
 
     def log_transition(self, transition, from_state, instance, *args, **kwargs):
         """Log a transition.
@@ -670,11 +656,7 @@ def _find_workflows(attrs):
             wf = v()
         else:
             continue
-        if wf.state_field:
-            state_field = wf.state_field
-            renamed_state_fields.add(state_field)
-        else:
-            state_field = k
+        state_field = k
         if state_field in workflows:
             raise ValueError(
                 "Unable to define the state field for workflow %s to "
