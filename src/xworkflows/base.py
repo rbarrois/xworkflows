@@ -687,7 +687,8 @@ class WorkflowEnabledMeta(type):
             implems.collect(attrs)
             implems.update_attrs(attrs)
 
-        attrs['_workflows'] = workflows
+        attrs['_workflows'] = dict((field_name, state_field.workflow)
+            for field_name, state_field in workflows.items())
         return super(WorkflowEnabledMeta, mcs).__new__(mcs, name, bases, attrs)
 
 
