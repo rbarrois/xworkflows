@@ -579,7 +579,7 @@ class Workflow(object):
             transition.target.name)
 
 
-class StateField(object):
+class StateWrapper(object):
     """Slightly enhanced wrapper around a base State object.
 
     Knows about the workflow.
@@ -619,7 +619,7 @@ class StateField(object):
         return unicode(self.state.title)
 
     def __hash__(self):
-        # A StateField should compare equal to its name.
+        # A StateWrapper should compare equal to its name.
         return hash(self.state.name)
 
     def transitions(self):
@@ -644,7 +644,7 @@ class StateProperty(object):
             return self
         state = instance.__dict__.get(self.field_name,
                                       self.workflow.initial_state)
-        return StateField(state, self.workflow)
+        return StateWrapper(state, self.workflow)
 
     def __set__(self, instance, value):
         """Set the current state of the 'instance' object."""

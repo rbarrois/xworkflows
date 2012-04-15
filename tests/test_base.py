@@ -102,7 +102,7 @@ class TransitionListTestCase(unittest2.TestCase):
         self.assertEqual([], list(self.tl.available_from(self.baz)))
 
 
-class StateFieldTestCase(unittest2.TestCase):
+class StateWrapperTestCase(unittest2.TestCase):
 
     def setUp(self):
         class MyWorkflow(base.Workflow):
@@ -117,7 +117,7 @@ class StateFieldTestCase(unittest2.TestCase):
         self.foo = base.State('foo', 'Foo')
         self.bar = base.State('bar', 'Bar')
         self.wf = MyWorkflow
-        self.sf = base.StateField(self.foo, self.wf)
+        self.sf = base.StateWrapper(self.foo, self.wf)
 
     def test_comparison(self):
         self.assertEqual(self.sf, self.foo)
