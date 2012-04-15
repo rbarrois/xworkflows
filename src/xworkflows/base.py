@@ -262,9 +262,10 @@ class TransitionImplementation(object):
         after (callable): optional callable to call *after* performing the
             transition (once the state has changed).
     """
-    def __init__(self, transition, field_name, implementation, before=None, after=None):
+    def __init__(self, transition, field_name, workflow, implementation, before=None, after=None):
         self.transition = transition
         self.field_name = field_name
+        self.workflow = workflow
         self.before = before
         self.implementation = implementation
         self.after = after
@@ -368,8 +369,8 @@ def noop(instance, *args, **kwargs):
 class NoOpTransitionImplementation(TransitionImplementation):
     """A dummy transition implementation which does not perform any action."""
 
-    def __init__(self, transition_name, field_name):
-        super(NoOpTransitionImplementation, self).__init__(transition_name, field_name, noop)
+    def __init__(self, transition_name, field_name, workflow):
+        super(NoOpTransitionImplementation, self).__init__(transition_name, field_name, workflow, noop)
 
 
 class ImplementationList(object):
@@ -402,7 +403,8 @@ class ImplementationList(object):
 
         def add_implem(transition, attr_name, function, before=None, after=None):
             implem = self._workflow.implementation_class(
-                transition, self.state_field, function, before, after)
+                transition, self.state_field, self._workflow, function,
+                before=before, after=after)
             self._implems[attr_name] = implem
             _local_mappings[transition.name] = attr_name
 
@@ -475,7 +477,8 @@ class ImplementationList(object):
                         "and the related attribute is not callable: %s" %
                         (transition, attrs[attrname]))
 
-                implem = NoOpTransitionImplementation(transition, self.state_field)
+                implem = NoOpTransitionImplementation(
+                    transition, self.state_field, self._workflow)
             if attrname in attrs:
                 self._assert_may_override(implem, attrs[attrname], attrname)
             self._add_implem(attrs, attrname, implem)

@@ -148,7 +148,7 @@ class TransitionImplementationTestCase(unittest2.TestCase):
             """doc for blah"""
             pass
 
-        impl = base.TransitionImplementation(self.foobar, 'my_state', blah)
+        impl = base.TransitionImplementation(self.foobar, 'my_state', None, blah)
 
         self.assertIn("'foobar'", repr(impl))
         self.assertIn("blah", repr(impl))
@@ -162,7 +162,7 @@ class TransitionImplementationTestCase(unittest2.TestCase):
         class MyClass(object):
             state = self.foo
 
-        implem = base.TransitionImplementation(self.foobar, 'my_state', blah)
+        implem = base.TransitionImplementation(self.foobar, 'my_state', None, blah)
 
         MyClass.foobar = implem
 
