@@ -3,6 +3,7 @@
 
 import functools
 import inspect
+import logging
 import re
 
 
@@ -311,14 +312,20 @@ class TransitionImplementation(object):
         except AbortTransitionSilently:
             return
 
+        from_state = getattr(instance, self.field_name)
         setattr(instance, self.field_name, self.transition.target)
 
         # Call hooks.
+        self._log_transition(instance, from_state, *args, **kwargs)
         self._post_transition(instance, res, *args, **kwargs)
         return res
 
     def _during_transition(self, instance, *args, **kwargs):
         return self.implementation(instance, *args, **kwargs)
+
+    def _log_transition(self, instance, from_state, *args, **kwargs):
+        self.workflow.log_transition(self.transition, from_state, instance,
+            *args, **kwargs)
 
     def _post_transition(self, instance, res, *args, **kwargs):
         """Performs post-transition actions."""
@@ -524,6 +531,9 @@ class WorkflowMeta(type):
         return new_class
 
 
+logger = logging.getLogger(__name__)
+
+
 class Workflow(object):
     """Base class for all workflows.
 
@@ -552,6 +562,21 @@ class Workflow(object):
         """
         if state_field:
             self.state_field = state_field
+
+    def log_transition(self, transition, from_state, obj, *args, **kwargs):
+        """Log a transition.
+
+        Args:
+            transition (Transition): the name of the performed transition
+            from_state (State): the source state
+            obj (object): the modified object
+
+        Kwargs:
+            Any passed when calling the transition
+        """
+        logger.info(u'%r performed transition %s.%s (%s -> %s)', obj,
+            self.__class__.__name__, transition.name, from_state.name,
+            transition.target.name)
 
 
 class StateField(object):
