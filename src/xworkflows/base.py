@@ -643,6 +643,12 @@ class StateProperty(object):
         return 'StateProperty(%s, %s)' % (self.workflow, self.field_name)
 
 
+class StateField(object):
+    """Indicates that a given class attribute is actually a workflow state."""
+    def __init__(self, workflow):
+        self.workflow = workflow
+
+
 def _find_workflows(attrs):
     """Find workflow definition(s) in a WorkflowEnabled definition."""
     workflows = {}
@@ -670,29 +676,37 @@ class WorkflowEnabledMeta(type):
     """Base metaclass for all Workflow Enabled objects.
 
     Defines:
-    - one class attribute for each 'state_field' of the attached workflows,
-    - a '_workflows' attribute, a dict mapping each state_field to the related
+    - one class attribute for each the attached workflows,
+    - a '_workflows' attribute, a dict mapping each field_name to the related
         Workflow,
     - one class attribute for each transition for each attached workflow
     """
 
     @classmethod
-    def _add_workflow(mcs, workflow, state_field, attrs):
+    def _add_workflow(mcs, field_name, state_field, attrs):
         """Attach a workflow to the attribute list (create a StateProperty)."""
-        attrs[state_field] = StateProperty(workflow, state_field)
+        attrs[field_name] = StateProperty(state_field.workflow, field_name)
+
+    @classmethod
+    def _find_workflows(mcs, attrs):
+        """Finds all occurrences of a workflow in the attributes definitions.
+
+        Returns:
+            dict(str => StateField): maps an attribute name to a StateField
+                describing the related Workflow.
+        """
+        workflows = {}
+        for k, v in attrs.items():
+            if isinstance(v, Workflow):
+                workflows[k] = StateField(v)
+        return workflows
 
     def __new__(mcs, name, bases, attrs):
-        workflows, renamed_state_fields = _find_workflows(attrs)
-        for state_field, workflow in workflows.iteritems():
-            if state_field in attrs and state_field in renamed_state_fields:
-                raise ValueError(
-                    "Unable to define the state field for workflow %s to %s "
-                    "since there is already an attribute with that name in the "
-                    "class definition (%s=%s)" %
-                    (workflow, state_field, state_field, attrs[state_field]))
-            mcs._add_workflow(workflow, state_field, attrs)
+        workflows = mcs._find_workflows(attrs)
+        for field_name, state_field in workflows.iteritems():
+            mcs._add_workflow(field_name, state_field, attrs)
 
-            implems = ImplementationList(state_field, workflow)
+            implems = ImplementationList(field_name, state_field.workflow)
             implems.collect(attrs)
             implems.update_attrs(attrs)
 

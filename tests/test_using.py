@@ -166,7 +166,7 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
     def test_implementation_conflict(self):
         def create_invalid_workflow_enabled():
             class MyWorkflowObject(base.WorkflowEnabled):
-                wf = self.MyWorkflow
+                wf = self.MyWorkflow()
                 foobar = 42
 
         self.assertRaises(ValueError, create_invalid_workflow_enabled)
@@ -188,7 +188,7 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
         def create_invalid_workflow_enabled():
             class MyWorkflowObject(base.WorkflowEnabled):
                 foobar = 42
-                wf = MyWorkflow
+                wf = MyWorkflow()
 
         # No implementation for 'foobar' - data from the Workflow was ignored.
         self.assertRaises(ValueError, create_invalid_workflow_enabled)
@@ -207,7 +207,7 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
                 pass
 
         class MyWorkflowObject(base.WorkflowEnabled):
-            wf = MyWorkflow
+            wf = MyWorkflow()
 
             @base.transition('foobar')
             def blah(self):
@@ -230,7 +230,7 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
 
         def create_invalid_workflow_enabled():
             class MyWorkflowObject(base.WorkflowEnabled):
-                wf = MyWorkflow
+                wf = MyWorkflow()
 
                 @base.transition('gobaz')
                 def foobar(self):
@@ -253,7 +253,7 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
 
         def create_invalid_workflow_enabled():
             class MyWorkflowObject(base.WorkflowEnabled):
-                wf = MyWorkflow
+                wf = MyWorkflow()
 
                 @base.transition('blah')
                 def foobar(self):
@@ -276,7 +276,7 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
 
         def create_invalid_workflow_enabled():
             class MyWorkflowObject(base.WorkflowEnabled):
-                wf = MyWorkflow
+                wf = MyWorkflow()
 
                 foobar = 42
 
@@ -329,7 +329,7 @@ class TransitionRunningTestCase(unittest2.TestCase):
             initial_state = 'foo'
 
         class MyWorkflowObject(base.WorkflowEnabled):
-            state = MyWorkflow
+            state = MyWorkflow()
 
         self.MyWorkflow = MyWorkflow
         self.MyWorkflowObject = MyWorkflowObject
@@ -370,8 +370,8 @@ class TransitionRunningTestCase(unittest2.TestCase):
             initial_state = 'foo'
 
         class MyWorkflowObject(base.WorkflowEnabled):
-            state1 = self.MyWorkflow
-            state2 = MyAltWorkflow
+            state1 = self.MyWorkflow()
+            state2 = MyAltWorkflow()
 
         obj = MyWorkflowObject()
 
