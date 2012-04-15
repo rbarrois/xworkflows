@@ -563,18 +563,18 @@ class Workflow(object):
         if state_field:
             self.state_field = state_field
 
-    def log_transition(self, transition, from_state, obj, *args, **kwargs):
+    def log_transition(self, transition, from_state, instance, *args, **kwargs):
         """Log a transition.
 
         Args:
             transition (Transition): the name of the performed transition
             from_state (State): the source state
-            obj (object): the modified object
+            instance (object): the modified object
 
         Kwargs:
             Any passed when calling the transition
         """
-        logger.info(u'%r performed transition %s.%s (%s -> %s)', obj,
+        logger.info(u'%r performed transition %s.%s (%s -> %s)', instance,
             self.__class__.__name__, transition.name, from_state.name,
             transition.target.name)
 
