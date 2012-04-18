@@ -126,7 +126,7 @@ Contents
 .. toctree::
     :maxdepth: 2
 
-    internals
+    reference
     changelog
 
 Resources
