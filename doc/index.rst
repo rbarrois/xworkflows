@@ -127,6 +127,7 @@ Contents
     :maxdepth: 2
 
     internals
+    changelog
 
 Resources
 =========

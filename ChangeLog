@@ -1,0 +1,32 @@
+0.2.4 (XX XX XX)
+----------------
+
+*New:*
+
+    * Improve documentation
+
+0.2.3 (15 04 2012)
+------------------
+
+*New:*
+
+    * Simplify API
+    * Add support for pe/post transition and logging hooks
+
+
+0.2.1 (26 03 2012)
+------------------
+
+*New:*
+
+    * Add support for workflow subclassing
+    * Improve packaging
+
+0.1.0 (08 09 2011)
+------------------
+
+*New:*
+
+    * First Public Release.
+
+.. vim:et:ts=4:sw=4:tw=79:ft=rst:
