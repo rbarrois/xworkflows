@@ -577,6 +577,8 @@ class StateWrapper(object):
             setattr(self, 'is_%s' % st.name, st.name == self.state.name)
 
     def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.state == other.state
         if isinstance(other, State):
             return self.state == other
         elif isinstance(other, basestring):
