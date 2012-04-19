@@ -7,7 +7,7 @@ __author__ = 'Raphaël Barrois <raphael.barrois@polytechnique.org>'
 from . import base
 
 AbortTransition = base.AbortTransition
-
+ForbiddenTransition = base.ForbiddenTransition
 InvalidTransitionError = base.InvalidTransitionError
 
 Workflow = base.Workflow

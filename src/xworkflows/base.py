@@ -11,16 +11,16 @@ class WorkflowError(Exception):
     """Base class for errors from the xworkflows module."""
 
 
-class InvalidTransitionError(WorkflowError):
-    """Raised when trying to perform a transition not available from current state."""
-
-
 class AbortTransition(WorkflowError):
     """Raised to prevent a transition from proceeding."""
 
 
-class AbortTransitionSilently(WorkflowError):
-    """Raised to (silently) prevent a transition from proceeding."""
+class InvalidTransitionError(AbortTransition):
+    """Raised when trying to perform a transition not available from current state."""
+
+
+class ForbiddenTransition(AbortTransition):
+    """Raised when the 'check' hook of a transition was defined and returned False."""
 
 
 class State(object):
@@ -307,10 +307,7 @@ class TransitionImplementation(object):
         if not self._pre_transition(instance, *args, **kwargs):
             return
 
-        try:
-            res = self._during_transition(instance, *args, **kwargs)
-        except AbortTransitionSilently:
-            return
+        res = self._during_transition(instance, *args, **kwargs)
 
         from_state = getattr(instance, self.field_name)
         setattr(instance, self.field_name, self.transition.target)
