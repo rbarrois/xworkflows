@@ -266,10 +266,11 @@ class TransitionImplementation(object):
         after (callable): optional callable to call *after* performing the
             transition (once the state has changed).
     """
-    def __init__(self, transition, field_name, workflow, implementation, before=None, after=None):
+    def __init__(self, transition, field_name, workflow, implementation, check=None, before=None, after=None):
         self.transition = transition
         self.field_name = field_name
         self.workflow = workflow
+        self.check = check
         self.before = before
         self.implementation = implementation
         self.after = after
@@ -298,17 +299,21 @@ class TransitionImplementation(object):
                 (self.transition, current_state))
 
     def _pre_transition(self, instance, *args, **kwargs):
+        if self.check is not None:
+            if not self.check(instance):
+                raise ForbiddenTransition(
+                    "Transition %s was forbidden by "
+                    "custom pre-transition check." % self.transition.name)
+
         if self.before is not None:
-            return self.before(instance, *args, **kwargs)
-        return True
+            self.before(instance, *args, **kwargs)
 
     def _run_implem(self, instance, *args, **kwargs):
         """Run the transition, with all checks."""
 
         self._check_state(instance)
         # Call hooks.
-        if not self._pre_transition(instance, *args, **kwargs):
-            return
+        self._pre_transition(instance, *args, **kwargs)
 
         res = self._during_transition(instance, *args, **kwargs)
 
@@ -344,28 +349,31 @@ class TransitionWrapper(object):
         func (function): the decorated method
     """
 
-    def __init__(self, trname, before=None, after=None):
+    def __init__(self, trname, check=None, before=None, after=None):
         self.trname = trname
+        self.check = check
         self.before = before
         self.after = after
         self.func = None
 
     def __call__(self, func):
         self.func = func
+        if self.trname == '':
+            self.trname = func.__name__
         return self
 
     def __repr__(self):
         return "<%s for %r: %s>" % (self.__class__.__name__, self.trname, self.func)
 
 
-def transition(trname, before=None, after=None):
+def transition(trname='', check=None, before=None, after=None):
     """Decorator to declare a function as a transition implementation.
 
     This should be used only when that function should be used for a transition
     with a different name.
     """
 
-    return TransitionWrapper(trname, before=before, after=after)
+    return TransitionWrapper(trname, check=check, before=before, after=after)
 
 
 def noop(instance, *args, **kwargs):
@@ -408,10 +416,10 @@ class ImplementationList(object):
         # as transition implementations
         _remaining_candidates = {}
 
-        def add_implem(transition, attr_name, function, before=None, after=None):
+        def add_implem(transition, attr_name, function, check=None, before=None, after=None):
             implem = self._workflow.implementation_class(
                 transition, self.state_field, self._workflow, function,
-                before=before, after=after)
+                check=check, before=before, after=after)
             self._implems[attr_name] = implem
             _local_mappings[transition.name] = attr_name
 
@@ -427,7 +435,7 @@ class ImplementationList(object):
                             "as %s." % (name, value, transition,
                                 self._implems[_local_mappings[value.trname]]))
 
-                    add_implem(transition, name, value.func, value.before, value.after)
+                    add_implem(transition, name, value.func, value.check, value.before, value.after)
 
             elif callable(value):
                 if name in self._workflow.transitions:

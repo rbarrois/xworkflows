@@ -438,8 +438,12 @@ class CustomImplementationTestCase(unittest2.TestCase):
         class MyWorkflowObject(base.WorkflowEnabled):
             state = self.MyWorkflow()
 
+            def check_foobar(self):
+                return False
+
+            @base.transition(check=check_foobar)
             def foobar(self):
-                raise base.AbortTransitionSilently()
+                pass
 
             def gobaz(self):
                 raise KeyError()
@@ -447,7 +451,7 @@ class CustomImplementationTestCase(unittest2.TestCase):
         obj = MyWorkflowObject()
 
         self.assertEqual(self.MyWorkflow.states.foo, obj.state)
-        self.assertEqual(None, obj.foobar())
+        self.assertRaises(base.ForbiddenTransition, obj.foobar)
         self.assertEqual(self.MyWorkflow.states.foo, obj.state)
 
         self.assertRaises(KeyError, obj.gobaz)
