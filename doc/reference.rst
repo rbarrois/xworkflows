@@ -2,223 +2,246 @@
 Reference
 =========
 
-.. module:: xworkflows
-    :synopsis: XWorkflows API
+.. currentmodule:: xworkflows
 
-This document presents the various classes and components of XWorkflows.
+The XWorkflow library has two main aspects:
 
+- Defining a workflow;
+- Using a workflow on an object.
 
-States
-------
+Defining a workflow
+-------------------
 
-States may be represented with different objects:
-
-- :class:`State` is a basic state (name and title)
-- :class:`xworkflows.base.StateWrapper` is an enhanced wrapper around the :class:`State` with enhanced comparison functions.
-- :class:`xworkflows.base.StateProperty` is a class-level property-like wrapper around a :class:`State`.
-
-The :class:`State` class
-""""""""""""""""""""""""
-
-.. class:: State(name[, title=None])
-
-    This class describes a state in the most simple manner: with an internal name and a human-readable title.
-
-    .. attribute:: name
-
-        The name of the :class:`State`;
-        used as an internal representation of the state, this should only contain ascii letters and numbers.
-
-    .. attribute:: title
-
-        The title of the :class:`State`; used for display to users.
-        If absent, this is a copy of :attr:`name`.
-
-
-The :class:`StateWrapper` class
-"""""""""""""""""""""""""""""""
-
-
-.. class:: xworkflows.base.StateWrapper(state, workflow)
-
-    Intended for use as a :class:`WorkflowEnabled` attribute,
-    this wraps a :class:`State` with knowledge about the related :class:`Workflow`.
-
-    Its :attr:`__hash__` is computed from the related :attr:`State.name`.
-    It compares equal to:
-
-    - Another :class:`~xworkflows.base.StateWrapper` for the same :class:`State`
-    - Its :class:`State`
-    - The :attr:`~State.name` of its :class:`State`
-
-    .. attribute:: state
-    
-        The wrapped :class:`State`
-
-    .. attribute:: workflow
-    
-        The :class:`Workflow` to which this :class:`State` belongs.
-
-    .. method:: transitions()
-
-        :returns: A list of :class:`~xworkflows.base.Transition` with this :class:`State` as source
-
-
-The :class:`StateProperty` class
-""""""""""""""""""""""""""""""""
-
-
-.. class:: xworkflows.base.StateProperty(workflow, state_field_name)
-
-    Special property-like object (technically a data descriptor), this class controls
-    access to the current :class:`State` of a :class:`WorkflowEnabled` object.
-
-    It performs the following actions:
-
-    - Checks that any set value is a valid :class:`State` from the :attr:`workflow` (raises :exc:`ValueError` otherwise)
-    - Wraps retrieved values into a :class:`~xworkflows.base.StateWrapper`
-
-    .. attribute:: workflow
-
-        The :class:`Workflow` to which the attribute is related
-
-    .. attribute:: state_field_name
-
-        The name of the attribute wrapped by this :class:`~xworkflows.base.StateProperty`.
-
-
-Workflows
----------
-
-
-A :class:`Workflow` definition is slightly different from the resulting class.
-
-A few class-level declarations will be converted into advanced objects:
-
-- :attr:`~Workflow.states` is defined as a list of two-tuples and converted into a :class:`~xworkflows.base.StateList`
-- :attr:`~Workflow.transitions` is defined as a list of three-tuples and converted into a :class:`~xworkflows.base.TransitionList`
-- :attr:`~Workflow.initial_state` is defined as the :attr:`~State.name` of the initial :class:`State` of the :class:`Workflow` and converted into that :class:`State`
-
-
-Workflow definition
-"""""""""""""""""""
-
-A :class:`Workflow` definition must inherit from the :class:`Workflow` class, or use the :class:`xworkflows.base.WorkflowMeta` metaclass for proper setup.
-
-Defining states
-'''''''''''''''
-
-The list of states should be defined as a list of two-tuples of ``(name, title)``::
+A workflow is defined by subclassing the :class:`Workflow` class, and setting
+a few specific attributes::
 
     class MyWorkflow(xworkflows.Workflow):
+
+        # The states in the workflow
         states = (
-            ('initial', "Initial"),
-            ('middle', "Intermediary"),
-            ('final', "Final - all is said and done."),
+            ('init', _(u"Initial state")),
+            ('ready', _(u"Ready")),
+            ('active', _(u"Active")),
+            ('done', _(u"Done")),
+            ('cancelled', _(u"Cancelled")),
         )
 
-This is converted into a :class:`~xworkflows.base.StateList` object.
-
-.. class:: xworkflows.base.StateList
-
-    This class acts as a mixed dictionary/object container of :class:`states <State>`::
-
-        >>> MyWorkflow.states.initial
-        State('initial')
-        >>> MyWorkflow.states['initial']
-        State('initial')
-        >>> 'initial' in MyWorkflow.states
-        True
-        >>> list(MyWorkflow.states)  # Definition order is kept
-        [State('initial'), State('middle'), State('final')]
-
-
-Defining transitions
-''''''''''''''''''''
-
-At a :class:`Workflow` level, transition are defined in a list of three-tuples:
-
-- transition name
-- list of the :attr:`names <State.name>` of source :class:`states <State>` for the transition, or name of the source state if unique
-- :attr:`name <State.name>` of the target :class:`State`
-
-.. sourcecode:: python
-
-    class MyWorkflow(xworkflows.Workflow):
+        # The transitions between those states
         transitions = (
-            ('advance', 'initial', 'middle'),
-            ('end', ['initial', 'middle'], 'final'),
+            ('prepare', 'init', 'ready'),
+            ('activate', 'ready', 'active'),
+            ('complete', 'active', 'done'),
+            ('cancel', ('ready', 'active'), 'cancelled'),
         )
 
-This is converted into a :class:`~xworkflows.base.TransitionList` object.
+        # The initial state of objects using that workflow
+        initial_state = 'init'
 
-.. class:: xworkflows.base.TransitionList
+Those attributes will be transformed into similar attributes with friendlier APIs:
 
-    This acts as a mixed dictionary/object container of :class:`transitions <xworkflows.base.Transition>`::
+- :attr:`~Workflow.states` is defined as a list of two-tuples
+  and converted into a :class:`~base.StateList`
+- :attr:`~Workflow.transitions` is defined as a list of three-tuples
+  and converted into a :class:`~base.TransitionList`
+- :attr:`~Workflow.initial_state` is defined as the :attr:`~base.State.name`
+  of the initial :class:`~base.State` of the :class:`Workflow` and converted into
+  the appropriate :class:`~base.State`
 
-        >>> MyWorkflow.transitions.advance
-        Transition('advance', [State('initial')], State('middle'))
-        >>> MyWorkflow.transitions['end']
-        Transition('end', [State('initial'), State('middle')], State('final'))
-        >>> 'advance' in MyWorkflow.transitions
+Accessing :class:`Workflow` states and transitions
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+The :attr:`~Workflow.states` attribute, a :class:`~base.StateList` instance,
+provides a mixed dictionary/object API::
+
+  >>> MyWorkflow.states.init
+  State('init')
+  >>> MyWorkflow.states.init.title
+  u"Initial state"
+  >>> MyWorkflow.states['ready']
+  State('ready')
+  >>> 'active' in MyWorkflow.states
+  True
+  >>> MyWorkflow.states.init in MyWorkflow.states
+  True
+  >>> list(MyWorkflow.states)  # definition order is kept
+  [State('init'), State('ready'), State('active'), State('done'), State('cancelled')]
+
+The :attr:`~Workflow.transitions` attribute of a
+:class:`Workflow` is a :class:`~base.TransitionList` instance,
+exposing a mixed dictionary/object API::
+
+        >>> MyWorkflow.transitions.prepare
+        Transition('prepare', [State('init')], State('ready'))
+        >>> MyWorkflow.transitions['cancel']
+        Transition('cancel', [State('ready'), State('actuve')], State('cancelled'))
+        >>> 'activate' in MyWorkflow.transitions
         True
-        >>> MyWorkflow.transitions.available_from(MyWorkflow.states.initial)
-        [Transition('advance'), Transition('end')]
-
-    .. method:: available_from(state)
-
-        Retrieve the list of :class:`~xworkflows.base.Transition` available from the given :class:`State`.
+        >>> MyWorkflow.transitions.available_from(MyWorkflow.states.ready)
+        [Transition('activate'), Transition('cancel')]
+        >>> list(MyWorkflow.transitions)  # Definition order is kept
+        [Transition('prepare'), Transition('activate'), Transition('complete'), Transition('cancel')]
 
 
-.. class:: xworkflows.base.Transition
 
-    Container for a transition.
+Using a workflow
+----------------
 
-    .. attribute:: name
+The process to apply a :class:`Workflow` to an object is quite straightforward:
 
-        The name of the :class:`~xworkflows.base.Transition`; should be a valid Python identifier
+- Inherit from :class:`base.WorkflowEnabled`
+- Define one or more class-level attributes as ``foo = SomeWorkflow()``
 
-    .. attribute:: source
+These attributes will be transformed into :class:`~base.StateProperty` objects,
+acting as a wrapper around the :class:`~base.State` held in the object's internal :attr:`__dict__`.
 
-        A list of source :class:`states <State>` for this :class:`~xworkflows.base.Transition`
+For each transition of each related :class:`Workflow`, the :class:`~base.WorkflowEnabledMeta` metaclass
+will add or enhance a method for each transition, according to the following rules:
 
-    .. attribute:: target
+- If a class method is decorated with :func:`transition('XXX') <transition>` where ``XXX`` is the name of a transition,
+  that method becomes the :class:`~base.TransitionImplementation` for that transition
+- For each remaining transition, if a method exists with the same name *and* is decorated with
+  the :func:`~transition` decorator, it will be used as the :class:`~base.TransitionImplementation`
+  of the transition. Methods with a transition name but no decorator will raise a :exc:`TypeError` -- this ensures that
+  all magic is somewhat explicit.
+- For all transitions which didn't have an implementation in the class definition, a new method is added to the class
+  definition. They have the same name as the transition, and a "noop" implementation.
+  :exc:`TypeError` is raised if a non-callable attribute already exists for a transition name.
 
-        The target :class:`State` for this :class:`~xworkflows.base.Transition`
+
+Accessing the current state
+"""""""""""""""""""""""""""
+
+For a :class:`WorkflowEnabled` object, each ``<attr> = SomeWorkflow()`` definition
+is translated into a :class:`~base.StateProperty` object, which adds a few functions
+to a plain attribute:
+
+- It checks that any value set is a valid :class:`~base.State` from the related :class:`Workflow`::
+
+      >>> obj = MyObject()
+      >>> obj.state = State('foo')
+      Traceback (most recent call last):
+          File "<stdin>", line 1, in <module>
+      ValueError: Value State('foo') is not a valid state for workflow MyWorkflow.
+    
+- It defaults to the :attr:`~Workflow.initial_state` of the :class:`Workflow` if no
+  value was set::
+
+    >>> obj = MyObject()
+    >>> obj.state
+    State('init')
+
+- It wraps retrieved values into a :class:`~base.StateWrapper`, which adds
+  a few extra attributes:
+
+  - Access to the related workflow::
+
+      >>> obj.state.workflow
+      <Workflow: MyWorkflow>
+
+  - Easy testing of the current value::
+
+      >>> obj.state.is_init
+      True
+      >>> obj.state.is_ready
+      False
+
+  - Native equivalence to the :attr:`state's name <base.State.name>`
+
+      >>> obj.state == 'init'
+      True
+      >>> obj.state == 'ready'
+      False
+      >>> obj.state in ['init', 'ready']
+      True
+
+    .. note:: This behavior should only be used when accessing the :class:`~base.State`
+              objects from the :attr:`Workflow.states` list is impossible, e.g comparison
+              with external data (URL, database, ...).
+
+              Using :class:`~base.State` objects or the :attr:`is_XXX` attributes protects
+              from typos in the code (:exc:`AttributeError` would be raised), whereas
+              raw strings provide no such guarantee.
 
 
-Workflow attributes
+Defining a transition implementation
+""""""""""""""""""""""""""""""""""""
+
+In order to link a state change with specific code, a :class:`WorkflowEnabled` object
+must simply have a method decorated with the :func:`transition` decorator.
+
+If that method cannot be defined with the name of the related :class:`~base.Transition`,
+the name of that :class:`~base.Transition` should be passed as first argument to the
+:func:`transition` decorator::
+
+  class MyObject(xworkflows.WorkflowEnabled):
+
+      state = MyWorkflow()
+
+      @xworkflows.transition()
+      def accept(self):
+          pass
+
+      @xworkflows.transition('cancel')
+      def do_cancel(self):
+          pass
+
+
+Once decorated, any call to that method will perfom the following steps:
+
+#. Check that the current :class:`~base.State` of the object is a valid source for
+   the target :class:`~base.Transition` (raises :exc:`InvalidTransitionError` otherwise)
+#. Checks that the optional :func:`check()` hook, if defined, returns ``True``
+   (raises :exc:`ForbiddenTransition` otherwise)
+#. Run the optional :func:`before()` hook, if defined (see below)
+#. Call the code of the function
+#. Change the :class:`~base.State` of the object
+#. Call the :func:`Workflow.log_transition` method of the related :class:`Workflow`
+#. Run the optional :func:`after()` hook, if defined (see below)
+
+
+Transitions for which no implementation was defined will have a basic :class:`noop <base.NoOpTransitionImplementation>` implementation.
+
+Controlling transitions
+"""""""""""""""""""""""
+
+According to the order above, preventing a :class:`State` change can be done:
+
+- By returning ``False`` in a custom :func:`check()` hook;
+- By raising any exception in the custom :func:`before()` hook;
+- By raising any exception in the actual implementation.
+
+
+Additional control over the transition implementation can be obtained via hooks.
+Three hooks are available, and are bound to the implementation at the :func:`transition` level::
+
+    @xworkflows.transition(check=some_fun, before=other_fun, after=something_else)
+    def accept(self):
+        pass
+
+- ``check``: this function is called just after the :class:`~base.State` check, and should return ``True`` if the transition can proceed;
+- ``before``: this function is called just before running the actual implementation.
+  It receives the same ``*args`` and ``**kwargs`` as those passed to the actual implementation;
+- ``after``: this function is called just after the :class:`~base.State` has been updated.
+  Its arguments are:
+
+  - ``res``: the return value of the actual implementation;
+  - ``*args`` and ``**kwargs``: the arguments passed to the actual implementation.
+
+Logging transitions
 """""""""""""""""""
 
-A :class:`Workflow` should inherit from the :class:`Workflow` base class, or use the :class:`WorkflowMeta` metaclass
-(that builds the :attr:`~Workflow.states`, :attr:`~Workflow.transitions`, :attr:`~Workflow.initial_state` attributes).
+The :func:`~Workflow.log_transition` method of a :class:`Workflow`
+allows logging each :class:`~base.Transition` performed by an object using that
+:class:`Workflow`.
 
-.. class:: Workflow
+This method is called with the following arguments:
 
-    This class holds the definition of a workflow.
+- ``transition``: the :class:`~base.Transition` just performed
+- ``from_state``: the :class:`~base.State` in which the object was just before the transition
+- ``instance``: the :class:`object` to which the transition was applied
+- ``*args``: the arguments passed to the transition implementation
+- ``**kwargs``: the keyword arguments passed to the transition implementation
 
-    .. attribute:: states
+The default implementation logs (with the :mod:`logging` module) to the ``xworkflows.transitions`` logger.
+This behaviour can be overridden on a per-workflow basis.
 
-        A :class:`~xworkflows.base.StateList` of all :class:`State` for this :class:`Workflow`
-
-    .. attribute:: transitions
-
-        A :class:`~xworkflows.base.TransitionList` of all :class:`~xworkflows.base.Transition` for this :class:`Workflow`
-
-    .. attribute:: initial_state
-
-        The initial :class:`State` for this :class:`Workflow`
-
-    .. method:: log_transition(transition, from_state, instance, *args, **kwargs)
-
-        .. ** [Disable vim syntax]
-
-        :param transition: The :class:`~xworkflows.base.Transition` just performed
-        :param from_state: The source :class:`State` of the instance (before performing a transition)
-        :param instance: The :class:`object` undergoing a transition
-        :param args: All non-keyword arguments passed to the transition implementation
-        :param kwargs: All keyword arguments passed to the transition implementation
-
-        This method allows logging all transitions performed by objects using a given workflow.
-
-        The default implementation logs to the logging module, in the ``xworkflows.base`` logger.

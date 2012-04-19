@@ -27,7 +27,7 @@ First, install the `xworkflows <http://pypi.python.org/pypi/xworkflows>`_ packag
 Declaring workflows
 -------------------
 
-You can now define a :class:`~xworkflows.base.Workflow`::
+You can now define a :class:`~xworkflows.Workflow`::
 
     class MyWorkflow(xworkflows.Workflow):
         states = (
@@ -54,7 +54,7 @@ Applying a workflow
 In order to apply that workflow to an object, you must:
 
 * Inherit from :class:`xworkflows.WorkflowEnabled`
-* Define one (or more) class attributes as :class:`~xworkflows.base.Workflow` instances.
+* Define one (or more) class attributes as :class:`~xworkflows.Workflow` instances.
 
 Here is an example::
 
@@ -127,6 +127,7 @@ Contents
     :maxdepth: 2
 
     reference
+    internals
     changelog
 
 Resources
