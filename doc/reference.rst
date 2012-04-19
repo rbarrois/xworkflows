@@ -138,6 +138,11 @@ to a plain attribute:
       >>> obj.state.workflow
       <Workflow: MyWorkflow>
 
+  - List of accessible transitions::
+
+      >>> obj.state.transitions
+      [Transition('accept')]
+
   - Easy testing of the current value::
 
       >>> obj.state.is_init
