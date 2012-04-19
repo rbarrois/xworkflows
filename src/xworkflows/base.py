@@ -70,7 +70,10 @@ class StateList(object):
             yield self._states[name]
 
     def __contains__(self, state):
-        return isinstance(state, State) and state.name in self._states and self._states[state.name] == state
+        if isinstance(state, State):
+            return state.name in self._states and self._states[state.name] == state
+        else:  # Expect a state name
+            return state in self._states
 
 
 class Transition(object):
