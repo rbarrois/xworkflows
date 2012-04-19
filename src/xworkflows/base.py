@@ -96,41 +96,6 @@ class Transition(object):
                                    self.name, self.source, self.target)
 
 
-class TransitionDef(object):
-    """A transition definition.
-
-    Attributes:
-        name (str): the name of the transition
-        source (str list): the name of the source states for the transition
-        target (str): the name of the target state for the transition
-    """
-
-    def __init__(self, name, source, target):
-        self.name = name
-        if isinstance(source, str):
-            source = [source]
-        self.source = source
-        self.target = target
-
-    def transition(self, states):
-        """Convert the TransitionDef into a Transition, binding to given states.
-
-        Args:
-            states (StateList): a list of states to use in the resulting
-                Transition
-
-        Returns:
-            Transition: the Transition that was defined.
-        """
-        sources = [states[source] for source in self.source]
-        target = states[self.target]
-        return Transition(self.name, sources, target)
-
-    def __repr__(self):
-        return '%s(%r, %r, %r)' % (self.__class__.__name__,
-                                   self.name, self.source, self.target)
-
-
 class TransitionList(object):
     """Holder for the transitions of a given workflow."""
 
@@ -138,7 +103,8 @@ class TransitionList(object):
         """Create a TransitionList.
 
         Args:
-            transitions (list of TransitionDef): the transitions to include.
+            transitions (list of (name, source, target) tuple): the transitions
+                to include.
         """
         self._transitions = {}
         self._order = []
@@ -192,7 +158,7 @@ def _setup_states(sdef, prev=()):
     for state in sdef:
         if isinstance(state, State):
             st = state
-        elif isinstance(state, str):
+        elif isinstance(state, basestring):
             st = State(state)
         elif len(state) == 2:
             name, title = state
@@ -220,19 +186,16 @@ def _setup_transitions(tdef, states, prev=()):
     """
     trs = list(prev)
     for transition in tdef:
-        if isinstance(transition, TransitionDef):
-            tr = transition.transition(states)
-        elif len(transition) == 3:
+        if len(transition) == 3:
             (name, source, target) = transition
-            # TODO: check that 'source' and 'target' are State list/object.
-            if isinstance(target, State):
-                tr = Transition(name, source, target)
-            else:
-                tr = TransitionDef(name, source, target).transition(states)
+            if isinstance(source, basestring) or isinstance(source, State):
+                source = [source]
+            source = [states[src] for src in source]
+            target = states[target]
+            tr = Transition(name, source, target)
         else:
             raise TypeError("Elements of the 'transition' attribute of a "
-                "workflow should be a TransitionDef object, a string or a "
-                "pair of strings; got %s instead." % (transition,))
+                "workflow should be three-tuples; got %r instead." % (transition,))
 
         at = None
         for i, prev_tr in enumerate(trs):

@@ -47,23 +47,6 @@ class StateListTestCase(unittest2.TestCase):
         self.assertEqual(2, len(self.sl))
 
 
-class TransitionDefTestCase(unittest2.TestCase):
-
-    def test_instantiation(self):
-        trdef = base.TransitionDef('foobar', 'foo', 'bar')
-        self.assertEqual(1, len(trdef.source))
-        self.assertEqual(['foo'], trdef.source)
-
-    def test_repr(self):
-        trdef = base.TransitionDef('foobar', 'foo', 'bar')
-        self.assertIn('foobar', repr(trdef))
-        self.assertIn("'foo'", repr(trdef))
-        self.assertIn("'bar'", repr(trdef))
-
-    def test_to_transition(self):
-        # TODO
-        pass
-
 class TransitionListTestCase(unittest2.TestCase):
 
     def setUp(self):

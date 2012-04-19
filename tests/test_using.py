@@ -36,22 +36,6 @@ class WorkflowDeclarationTestCase(unittest2.TestCase):
 
         self.assertExpected(MyWorkflow, capitalized_states=False)
 
-    def test_object_definition(self):
-        class MyWorkflow(base.Workflow):
-            states = (
-                base.State('foo', 'Foo'),
-                base.State('bar', 'Bar'),
-                base.State('baz', 'Baz'),
-            )
-            transitions = (
-                base.TransitionDef('foobar', 'foo', 'bar'),
-                base.TransitionDef('gobaz', ('foo', 'bar'), 'baz'),
-                base.TransitionDef('bazbar', 'baz', 'bar'),
-            )
-            initial_state = 'foo'
-
-        self.assertExpected(MyWorkflow)
-
     def test_alt_simple_definition(self):
         class MyWorkflow(base.Workflow):
             states = (
