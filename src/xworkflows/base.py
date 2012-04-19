@@ -528,9 +528,6 @@ class WorkflowMeta(type):
         return new_class
 
 
-logger = logging.getLogger(__name__)
-
-
 class Workflow(object):
     """Base class for all workflows.
 
@@ -560,6 +557,7 @@ class Workflow(object):
         Kwargs:
             Any passed when calling the transition
         """
+        logger = logging.getLogger('xworkflows.transitions')
         logger.info(u'%r performed transition %s.%s (%s -> %s)', instance,
             self.__class__.__name__, transition.name, from_state.name,
             transition.target.name)
