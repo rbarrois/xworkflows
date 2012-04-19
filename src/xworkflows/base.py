@@ -330,12 +330,10 @@ class TransitionWrapper(object):
 
 
 def transition(trname='', check=None, before=None, after=None):
-    """Decorator to declare a function as a transition implementation.
-
-    This should be used only when that function should be used for a transition
-    with a different name.
-    """
-
+    """Decorator to declare a function as a transition implementation."""
+    if callable(trname):
+        raise ValueError("The @transition decorator should be called as "
+            "@transition(['transition_name'], **kwargs)")
     return TransitionWrapper(trname, check=check, before=before, after=after)
 
 
@@ -369,53 +367,36 @@ class ImplementationList(object):
         self._transitions_mapping = {}
         self._workflow = workflow
 
+    def _get_implem(self, transition_name):
+        return self._implems[self._transitions_mapping[transition_name]]
+
     def collect(self, attrs):
         """Collect the implementations from a given attributes dict."""
-        # Store the transition name => attribute name mapping for
-        # implementations discovered in the attrs dict
-        _local_mappings = {}
-
-        # Store the transition name => callable for callable which may be used
-        # as transition implementations
-        _remaining_candidates = {}
 
         def add_implem(transition, attr_name, function, check=None, before=None, after=None):
             implem = self._workflow.implementation_class(
                 transition, self.state_field, self._workflow, function,
                 check=check, before=before, after=after)
             self._implems[attr_name] = implem
-            _local_mappings[transition.name] = attr_name
+            self._transitions_mapping[transition.name] = attr_name
 
         # First, try to find all TransitionWrapper.
         for name, value in attrs.iteritems():
             if isinstance(value, TransitionWrapper):
                 if value.trname in self._workflow.transitions:
                     transition = self._workflow.transitions[value.trname]
-                    if value.trname in _local_mappings:
+
+                    if value.trname in self._transitions_mapping:
+                        # Some other function used @transition(value.trname)
+                        other_implem = self._get_implem(value.trname)
                         raise ValueError(
                             "Error for attribute %s: it defines implementation "
                             "%s for transition %s, which is already implemented "
                             "as %s." % (name, value, transition,
-                                self._implems[_local_mappings[value.trname]]))
+                                self._get_implem(value.trname)))
 
-                    add_implem(transition, name, value.func, value.check, value.before, value.after)
-
-            elif callable(value):
-                if name in self._workflow.transitions:
-                    _remaining_candidates[name] = value
-
-        # Then, browse the remaining transitions and add callable if needed.
-        _implemented = self._transitions_mapping.copy()
-        _implemented.update(_local_mappings)
-
-        for transition in self._workflow.transitions:
-            trname = transition.name
-            if trname in _remaining_candidates:
-                if trname not in _implemented or _implemented[trname] == trname:
-                    value = _remaining_candidates[transition.name]
-                    add_implem(transition, transition.name, value)
-
-        self._transitions_mapping.update(_local_mappings)
+                    add_implem(transition, name, value.func,
+                        check=value.check, before=value.before, after=value.after)
 
     def _assert_may_override(self, implem, other, attrname):
         if isinstance(other, TransitionImplementation):
@@ -452,8 +433,8 @@ class ImplementationList(object):
                 if attrname in attrs:
                     raise ValueError(
                         "Error for transition %s: no implementation is defined, "
-                        "and the related attribute is not callable: %s" %
-                        (transition, attrs[attrname]))
+                        "and the related attribute lacks a @transition "
+                        "decorator: %s" % (transition, attrs[attrname]))
 
                 implem = NoOpTransitionImplementation(
                     transition, self.state_field, self._workflow)

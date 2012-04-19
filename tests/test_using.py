@@ -396,6 +396,7 @@ class CustomImplementationTestCase(unittest2.TestCase):
         class MyWorkflowObject(base.WorkflowEnabled):
             state = self.MyWorkflow()
 
+            @base.transition()
             def gobaz(self, res):
                 return res + res
 
@@ -409,6 +410,7 @@ class CustomImplementationTestCase(unittest2.TestCase):
         class MyWorkflowObject(base.WorkflowEnabled):
             state = self.MyWorkflow()
 
+            @base.transition()
             def foobar(self, res):
                 return res + res
 
@@ -429,6 +431,7 @@ class CustomImplementationTestCase(unittest2.TestCase):
             def foobar(self):
                 pass
 
+            @base.transition()
             def gobaz(self):
                 raise KeyError()
 
@@ -471,9 +474,11 @@ class ExtendedTransitionImplementationTestCase(unittest2.TestCase):
         class MyWorkflowObject(base.WorkflowEnabled):
             state = MyWorkflow()
 
+            @base.transition()
             def foobar(self, **kwargs):
                 return 1
 
+            @base.transition()
             def gobaz(self, blah=10):
                 return blah
 
