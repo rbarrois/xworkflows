@@ -318,6 +318,9 @@ In order to use a :class:`Workflow`, related objects should inherit from the :cl
 
     This metaclass handles the parsing of :class:`WorkflowEnabled` and related magic.
 
+    Most of the work is handled by :class:`~base.ImplementationList`, with one instance
+    handling each :class:`Workflow` attached to the :class:`WorkflowEnabled` object.
+
 
 
 Customizing transitions
