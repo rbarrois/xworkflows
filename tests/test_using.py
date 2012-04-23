@@ -396,6 +396,89 @@ class TransitionRunningTestCase(unittest2.TestCase):
         self.assertEqual(self.MyWorkflow.states.foo, obj.state1)
         self.assertEqual(MyAltWorkflow.states.foo, obj.state2)
 
+    def test_dual_workflows_conflict(self):
+        """Define an object with two workflows and conflicting transitions."""
+
+        class MyAltWorkflow(base.Workflow):
+            states = (
+                ('foo2', "Foo"),
+                ('bar2', "Bar"),
+                ('baz2', "Baz"),
+            )
+            transitions = (
+                ('foobar', 'foo2', 'bar2'),
+                ('gobaz', ('foo2', 'bar2'), 'baz2'),
+                ('bazbar', 'baz2', 'bar2'),
+            )
+            initial_state = 'foo2'
+
+        def create_invalid_workflow_object():
+            class MyWorkflowObject(base.WorkflowEnabled):
+                state1 = self.MyWorkflow()
+                state2 = MyAltWorkflow()
+
+        self.assertRaises(ValueError, create_invalid_workflow_object)
+
+        def create_other_invalid_workflow_object():
+            """Resolve only some transitions."""
+            class MyWorkflowObject(base.WorkflowEnabled):
+                state1 = self.MyWorkflow()
+                state2 = MyAltWorkflow()
+
+                @base.transition('foobar', field='state2')
+                def foobar2(self):
+                    pass
+
+                @base.transition('gobaz', field='state2')
+                def gobaz2(self):
+                    pass
+
+        self.assertRaises(ValueError, create_other_invalid_workflow_object)
+
+    def test_dual_workflows_conflict_resolved(self):
+        """Define an object with two workflows and renamed transitions."""
+
+        class MyAltWorkflow(base.Workflow):
+            states = (
+                ('foo2', "Foo"),
+                ('bar2', "Bar"),
+                ('baz2', "Baz"),
+            )
+            transitions = (
+                ('foobar', 'foo2', 'bar2'),
+                ('gobaz', ('foo2', 'bar2'), 'baz2'),
+                ('bazbar', 'baz2', 'bar2'),
+            )
+            initial_state = 'foo2'
+
+        class MyWorkflowObject(base.WorkflowEnabled):
+            state1 = self.MyWorkflow()
+            state2 = MyAltWorkflow()
+
+            @base.transition('foobar', field='state2')
+            def foobar2(self):
+                pass
+
+            @base.transition('gobaz', field='state2')
+            def gobaz2(self):
+                pass
+
+            @base.transition('bazbar', field='state2')
+            def bazbar2(self):
+                pass
+
+        obj = MyWorkflowObject()
+        self.assertEqual(self.MyWorkflow.states.foo, obj.state1)
+        self.assertEqual(MyAltWorkflow.states.foo2, obj.state2)
+
+        obj.foobar()
+        self.assertEqual(self.MyWorkflow.states.bar, obj.state1)
+        self.assertEqual(MyAltWorkflow.states.foo2, obj.state2)
+
+        obj.gobaz2()
+        self.assertEqual(self.MyWorkflow.states.bar, obj.state1)
+        self.assertEqual(MyAltWorkflow.states.baz2, obj.state2)
+
 
 class CustomImplementationTestCase(unittest2.TestCase):
 

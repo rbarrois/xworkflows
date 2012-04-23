@@ -308,8 +308,9 @@ class TransitionWrapper(object):
         func (function): the decorated method
     """
 
-    def __init__(self, trname, check=None, before=None, after=None):
+    def __init__(self, trname, field=None, check=None, before=None, after=None):
         self.trname = trname
+        self.field = field
         self.check = check
         self.before = before
         self.after = after
@@ -325,12 +326,13 @@ class TransitionWrapper(object):
         return "<%s for %r: %s>" % (self.__class__.__name__, self.trname, self.func)
 
 
-def transition(trname='', check=None, before=None, after=None):
+def transition(trname='', field=None, check=None, before=None, after=None):
     """Decorator to declare a function as a transition implementation."""
     if callable(trname):
         raise ValueError("The @transition decorator should be called as "
             "@transition(['transition_name'], **kwargs)")
-    return TransitionWrapper(trname, check=check, before=before, after=after)
+    return TransitionWrapper(trname, field=field,
+        check=check, before=before, after=after)
 
 
 def noop(instance, *args, **kwargs):
@@ -380,6 +382,10 @@ class ImplementationList(object):
         for name, value in attrs.iteritems():
             if isinstance(value, TransitionWrapper):
                 if value.trname in self._workflow.transitions:
+                    if value.field is not None and value.field != self.state_field:
+                        # Applying for another workflow
+                        continue
+
                     transition = self._workflow.transitions[value.trname]
 
                     if value.trname in self._transitions_mapping:
