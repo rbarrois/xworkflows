@@ -89,7 +89,11 @@ class StateWrapperTestCase(unittest2.TestCase):
 
     def setUp(self):
         class MyWorkflow(base.Workflow):
-            states = ('foo', 'bar', 'baz')
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
             transitions = (
                 ('foobar', 'foo', 'bar'),
                 ('gobaz', ('foo', 'bar'), 'baz'),

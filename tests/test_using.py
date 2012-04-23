@@ -8,7 +8,7 @@ from xworkflows import base
 
 class WorkflowDeclarationTestCase(unittest2.TestCase):
 
-    def assertExpected(self, workflow, capitalized_states=True, initial_state='foo'):
+    def assertExpected(self, workflow, initial_state='foo'):
         self.assertEqual(3, len(workflow.states))
         self.assertEqual(3, len(workflow.transitions))
         self.assertEqual(workflow.states[initial_state], workflow.initial_state)
@@ -16,27 +16,11 @@ class WorkflowDeclarationTestCase(unittest2.TestCase):
         self.assertEqual(workflow.states['bar'], workflow.transitions['foobar'].target)
 
         for state in workflow.states:
-            if capitalized_states:
-                exp_title = state.name.capitalize()
-            else:
-                exp_title = state.name
+            exp_title = state.name.capitalize()
             self.assertEqual(exp_title, state.title)
             self.assertIn(state.name, ('foo', 'bar', 'baz'))
 
-
     def test_simple_definition(self):
-        class MyWorkflow(base.Workflow):
-            states = ('foo', 'bar', 'baz')
-            transitions = (
-                ('foobar', 'foo', 'bar'),
-                ('gobaz', ('foo', 'bar'), 'baz'),
-                ('bazbar', 'baz', 'bar'),
-            )
-            initial_state = 'foo'
-
-        self.assertExpected(MyWorkflow, capitalized_states=False)
-
-    def test_alt_simple_definition(self):
         class MyWorkflow(base.Workflow):
             states = (
                 ('foo', 'Foo'),
@@ -54,7 +38,11 @@ class WorkflowDeclarationTestCase(unittest2.TestCase):
 
     def test_subclassing(self):
         class MyWorkflow(base.Workflow):
-            states = ('foo', 'bar', 'baz')
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
             transitions = (
                 ('foobar', 'foo', 'bar'),
                 ('gobaz', ('foo', 'bar'), 'baz'),
@@ -62,12 +50,12 @@ class WorkflowDeclarationTestCase(unittest2.TestCase):
             )
             initial_state = 'foo'
 
-        self.assertExpected(MyWorkflow, capitalized_states=False)
+        self.assertExpected(MyWorkflow)
 
         class MySubWorkflow(MyWorkflow):
             initial_state = 'bar'
 
-        self.assertExpected(MySubWorkflow, capitalized_states=False, initial_state='bar')
+        self.assertExpected(MySubWorkflow, initial_state='bar')
 
     def test_invalid_definitions(self):
         def create_invalid_workflow_1():
@@ -91,7 +79,11 @@ class WorkflowDeclarationTestCase(unittest2.TestCase):
 
         def create_invalid_workflow_3():
             class MyWorkflow(base.Workflow):
-                states = ('foo', 'bar', 'baz')
+                states = (
+                    ('foo', "Foo"),
+                    ('bar', "Bar"),
+                    ('baz', "Baz"),
+                )
                 transitions = (
                     ('foobar', 'bbb', 'bar'),
                 )
@@ -101,7 +93,11 @@ class WorkflowDeclarationTestCase(unittest2.TestCase):
 
         def create_invalid_workflow_4():
             class MyWorkflow(base.Workflow):
-                states = ('foo', 'bar', 'baz')
+                states = (
+                    ('foo', "Foo"),
+                    ('bar', "Bar"),
+                    ('baz', "Baz"),
+                )
                 transitions = (
                     ('foobar', 'bbb'),
                 )
@@ -113,7 +109,11 @@ class WorkflowDeclarationTestCase(unittest2.TestCase):
 class WorkflowEnabledTestCase(unittest2.TestCase):
     def setUp(self):
         class MyWorkflow(base.Workflow):
-            states = ('foo', 'bar', 'baz')
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
             transitions = (
                 ('foobar', 'foo', 'bar'),
                 ('gobaz', ('foo', 'bar'), 'baz'),
@@ -157,7 +157,11 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
 
     def test_renamed_implementation(self):
         class MyWorkflow(base.Workflow):
-            states = ('foo', 'bar', 'baz')
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
             transitions = (
                 ('foobar', 'foo', 'bar'),
                 ('gobaz', ('foo', 'bar'), 'baz'),
@@ -179,7 +183,11 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
 
     def test_override_renamed(self):
         class MyWorkflow(base.Workflow):
-            states = ('foo', 'bar', 'baz')
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
             transitions = (
                 ('foobar', 'foo', 'bar'),
                 ('gobaz', ('foo', 'bar'), 'baz'),
@@ -201,7 +209,11 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
 
     def test_override_conflict(self):
         class MyWorkflow(base.Workflow):
-            states = ('foo', 'bar', 'baz')
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
             transitions = (
                 ('foobar', 'foo', 'bar'),
                 ('gobaz', ('foo', 'bar'), 'baz'),
@@ -224,7 +236,11 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
 
     def test_override_with_invalid_wrapper(self):
         class MyWorkflow(base.Workflow):
-            states = ('foo', 'bar', 'baz')
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
             transitions = (
                 ('foobar', 'foo', 'bar'),
                 ('gobaz', ('foo', 'bar'), 'baz'),
@@ -247,7 +263,11 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
 
     def test_override_with_constant(self):
         class MyWorkflow(base.Workflow):
-            states = ('foo', 'bar', 'baz')
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
             transitions = (
                 ('foobar', 'foo', 'bar'),
                 ('gobaz', ('foo', 'bar'), 'baz'),
@@ -279,7 +299,11 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
 
     def test_dual_workflows(self):
         class MyAltWorkflow(base.Workflow):
-            states = ('foo', 'bar', 'baz')
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
             transitions = (
                 ('altfoobar', 'foo', 'bar'),
                 ('altgobaz', ('foo', 'bar'), 'baz'),
@@ -304,7 +328,11 @@ class TransitionRunningTestCase(unittest2.TestCase):
 
     def setUp(self):
         class MyWorkflow(base.Workflow):
-            states = ('foo', 'bar', 'baz')
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
             transitions = (
                 ('foobar', 'foo', 'bar'),
                 ('gobaz', ('foo', 'bar'), 'baz'),
@@ -345,7 +373,11 @@ class TransitionRunningTestCase(unittest2.TestCase):
 
     def test_dual_workflows(self):
         class MyAltWorkflow(base.Workflow):
-            states = ('foo', 'bar', 'baz')
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
             transitions = (
                 ('altfoobar', 'foo', 'bar'),
                 ('altgobaz', ('foo', 'bar'), 'baz'),
@@ -369,7 +401,11 @@ class CustomImplementationTestCase(unittest2.TestCase):
 
     def setUp(self):
         class MyWorkflow(base.Workflow):
-            states = ('foo', 'bar', 'baz')
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
             transitions = (
                 ('foobar', 'foo', 'bar'),
                 ('gobaz', ('foo', 'bar'), 'baz'),
@@ -450,7 +486,11 @@ class ExtendedTransitionImplementationTestCase(unittest2.TestCase):
 
     def setUp(self):
         class MyWorkflow(base.Workflow):
-            states = ('foo', 'bar', 'baz')
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
             transitions = (
                 ('foobar', 'foo', 'bar'),
                 ('gobaz', ('foo', 'bar'), 'baz'),

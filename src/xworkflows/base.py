@@ -152,25 +152,21 @@ class TransitionList(object):
         return '%s(%r)' % (self.__class__.__name__, self._transitions.values())
 
 
-def _setup_states(sdef, prev=()):
+def _setup_states(state_definitions, prev=()):
     """Create a StateList object from a 'states' Workflow attribute."""
-    sts = list(prev)
-    for state in sdef:
-        if isinstance(state, State):
-            st = state
-        elif isinstance(state, basestring):
-            st = State(state)
-        elif len(state) == 2:
-            name, title = state
-            st = State(name, title)
+    states = list(prev)
+    for state_def in state_definitions:
+        if len(state_def) != 2:
+            raise TypeError("The 'state' attribute of a workflow should be "
+                "a two-tuple of strings; got %r instead." % (state_def,))
         else:
-            raise TypeError("Elements of the 'state' attribute of a "
-                "workflow should be a State object, a string or a pair of "
-                "strings; got %s instead." % (state,))
-        if st in sts:
-            sts.remove(st)
-        sts.append(st)
-    return StateList(sts)
+            name, title = state_def
+            state = State(name, title)
+        if state in states:
+            # Replacing an existing state
+            states.remove(state)
+        states.append(state)
+    return StateList(states)
 
 
 def _setup_transitions(tdef, states, prev=()):
