@@ -7,6 +7,35 @@ Internals
 
 This document presents the various classes and components of XWorkflows.
 
+.. note:: All objects defined in the :mod:`base` module should be considered internal API
+          and subject to change without notice.
+
+          Refer to ``xworkflows.__init__.py`` to get a list of public objects and methods.
+
+Exceptions
+----------
+
+The :mod:`xworkflows` module exposes a few specific exceptions:
+
+.. exception:: WorkflowError
+
+    This is the base for all exceptions from the :mod:`xworkflows` module.
+
+.. exception:: AbortTransition(WorkflowError)
+
+    This error is raised whenever a transition call fails, either due to state
+    validation or pre-transition checks.
+
+.. exception:: InvalidTransitionError(AbortTransition)
+
+    This exception is raised when trying to perform a transition from an
+    incompatible state.
+
+.. exception:: ForbiddenTransition(AbortTransition)
+
+    This exception will be raised when the :attr:`check` parameter of the
+    :func:`transition` decorator returns a non-``True`` value.
+
 
 States
 ------
@@ -52,11 +81,11 @@ The :class:`StateWrapper` class
     - The :attr:`~base.State.name` of its :class:`~base.State`
 
     .. attribute:: state
-    
+
         The wrapped :class:`~base.State`
 
     .. attribute:: workflow
-    
+
         The :class:`Workflow` to which this :class:`~base.State` belongs.
 
     .. method:: transitions()
@@ -124,7 +153,7 @@ This is converted into a :class:`~base.StateList` object.
     This class acts as a mixed dictionary/object container of :class:`states <base.State>`.
 
     It replaces the :attr:`~Workflow.states` list from the :class:`Workflow` definition.
-    
+
     .. method:: __len__
 
       Returns the number of states in the :class:`Workflow`
@@ -256,3 +285,243 @@ A :class:`Workflow` should inherit from the :class:`Workflow` base class, or use
         This method allows logging all transitions performed by objects using a given workflow.
 
         The default implementation logs to the logging module, in the ``base`` logger.
+
+
+    .. attribute:: implementation_class
+
+        The class to use when creating :class:`~base.TransitionImplementation` for a :class:`WorkflowEnabled` using this :class:`Workflow`.
+
+        Defaults to :class:`~base.TransitionImplementation`.
+
+
+
+Applying workflows
+------------------
+
+In order to use a :class:`Workflow`, related objects should inherit from the :class:`WorkflowEnabled` class.
+
+
+.. class:: WorkflowEnabled
+
+    This class will handle all specific setup related to using :class:`workflows <Workflow>`:
+
+    - Converting ``attr = SomeWorkflow()`` into a :class:`~base.StateProperty` class attribute*
+    - Wrapping all :func:`transition`-decorated functions into :class:`~base.TransitionImplementation` wrappers
+    - Adding noop implementations for other transitions
+
+    .. attribute:: _workflows
+
+        This class-level attribute holds a dict mapping an attribute to the related :class:`Workflow`.
+
+
+.. class:: base.WorkflowEnabledMeta
+
+    This metaclass handles the parsing of :class:`WorkflowEnabled` and related magic.
+
+
+
+Customizing transitions
+-----------------------
+
+A bare :class:`WorkflowEnabled` subclass definition will be automatically modified to
+include "noop" implementations for all transitions from related workflows.
+
+In order to customize this behaviour, one should use the :func:`transition` decorator on
+methods that should be called when performing transitions.
+
+
+.. function:: transition([trname='', field='', check=None, before=None, after=None])
+
+    Decorates a method and uses it for a given :class:`~base.Transition`.
+
+    :param str trname: Name of the transition during which the decorated method should be called.
+      If empty, the name of the decorated method is used.
+
+    :param str field: Name of the field this transition applies to; useful when two workflows define a transition with the same name.
+
+    :param callable check: An optional function to call before running the transition, with
+      the about-to-be-modified instance as single argument.
+
+      Should return ``True`` if the transition can proceed.
+
+    :param callable before: An optional function to call after checks and before the actual
+      implementation.
+
+      Receives the same arguments as the transition implementation.
+
+    :param callable after: An optional function to call *after* the transition was performed and logged.
+
+      Receives the instance, the implementation return value and the implementation arguments.
+
+
+.. class:: base.TransitionWrapper
+
+    Actual class holding all values defined by the :func:`transition` decorator.
+
+    .. attribute:: func
+
+      The decorated function, wrapped with a few checks and calls.
+
+
+Advanced customization
+""""""""""""""""""""""
+
+Once :class:`~base.WorkflowEnabledMeta` has updated the :class:`WorkflowEnabled` subclass,
+all transitions -- initially defined and automatically added -- are replaced with a :class:`base.TransitionImplementation` instance.
+
+.. class:: base.TransitionImplementation
+
+    This class handles applying a :class:`~base.Transition` to a :class:`WorkflowEnabled` object.
+    Internally, it acts as a 'non-data descriptor', close to :func:`property`.
+
+    .. attribute:: transition
+
+        The :class:`~base.Transition` performed by this object.
+
+        :type: :class:`~base.Transition`
+
+
+    .. attribute:: field_name
+
+        The name of the field modified by this :class:`~base.TransitionImplementation` (a string)
+
+        :type: str
+
+
+    .. attribute:: workflow
+
+        The :class:`Workflow` to which this :class:`~base.TransitionImplementation` relates.
+
+        :type: :class:`Workflow`
+
+
+    .. attribute:: implementation
+
+        The actual method to call when performing the transition. For undefined implementations, uses :func:`~base.noop`.
+
+        :type: callable
+
+
+    .. attribute:: check
+
+        An optional method to call before calling :attr:`implementation`.
+        This method will be called just after :class:`~base.State` checks, and should return ``True`` if the transition is allowed to proceed.
+
+        Will be called with the about-to-update instance.
+
+        :type: callable or :obj:`None`
+
+
+    .. attribute:: before
+
+        An optional method to call after all checks and just before the :attr:`implementation`.
+
+        Will be called with:
+
+        - The about-to-update instance
+        - The ``*args`` used when calling the transition
+        - The ``**kwargs`` used when calling the transition
+
+        :type: callable or :obj:`None`
+
+
+    .. attribute:: after
+
+        An optional method to call after :attr:`implementation`, the :class:`~base.State` change and the :meth:`Workflow.log_transition` call.
+
+        Will be called with:
+
+        - The updated instance
+        - The return value of :attr:`implementation`
+        - The ``*args`` used when calling the transition
+        - The ``**kwargs`` used when calling the transition
+
+
+.. function:: base.noop(instance)
+
+    The 'do-nothing' function called as default implementation of transitions.
+
+
+Collecting the :class:`~base.TransitionImplementation`
+""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+.. warning:: This documents private APIs. Use at your own risk.
+
+
+Building the list of :class:`~base.TransitionImplementation` for a given :class:`WorkflowEnabled`, and generating the missing ones, is a complex job.
+
+
+.. class:: ImplementationList
+
+    This class performs a few low-level operations on a :class:`WorkflowEnabled` class:
+
+    - Collecting :class:`~base.TransitionWrapper` attributes
+    - Converting them into :class:`~base.TransitionImplementation`
+    - Adding :func:`~base.noop` implementations for remaining :class:`~base.Transition`
+    - Updating the class attributes with those :class:`~base.TransitionImplementation`
+
+    .. attribute:: state_field
+
+        The name of the attribute (from ``attr = SomeWorkflow()`` definition) currently handled.
+
+        :type: :class:`str`
+
+    .. attribute:: _workflow
+
+        The :class:`Workflow` this :class:`~base.ImplementationList` refers to
+
+    .. attribute:: _implems
+
+        Dict mapping an attribute name to the :class:`~base.TransitionImplementation` that should fill it
+
+        :type: :class:`dict` (:class:`str` => :class:`~base.TransitionImplementation`)
+
+    .. attribute:: _transitions_mapping
+
+        Dict mapping the name of a transition to the attribute holding its :class:`~base.TransitionImplementation`::
+
+            @transition('foo')
+            def bar(self):
+                pass
+
+        will translate into::
+
+            self._implems == {'bar': <function bar at 0xdeadbeed>}
+            self._transitions_mapping == {'foo': 'bar'}
+
+
+    .. method:: collect(self, attrs)
+
+        Collects all :class:`~base.TransitionWrapper` from an attribute dict.
+
+        :raises: ValueError
+            If two :class:`~base.TransitionWrapper` for a same :class:`~base.Transition` are defined in the attributes.
+
+    .. method:: _assert_may_override(self, implem, other, attrname)
+
+        Checks whether the :attr:`implem` :class:`~base.TransitionImplementation` is a
+        valid override for the :attr:`other` :class:`~base.TransitionImplementation` when
+        defined as the :attr:`attrname` class attribute.
+
+        Rules are:
+
+        - A :class:`~base.TransitionImplementation` may not override another :class:`~base.TransitionImplementation` for another :class:`~base.Transition` or another :class:`Workflow`
+        - A :class:`~base.TransitionImplementation` may not override a :class:`~base.TransitionWrapper` unless both handle the same :class:`~base.Transition`
+        - A :class:`~base.TransitionImplementation` may not override other types of previous definitions,
+          unless that previous definition is the wrapped :attr:`~base.TransitionImplementation.implementation`.
+
+
+    .. method:: update_attrs(self, attrs)
+
+        Adds all :class:`~base.TransitionImplementation` from :attr:`_implems` to the
+        given attributes dict.
+
+        Performs the following checks:
+
+        - Makes sure that each :class:`~base.Transition` from the :class:`Workflow` have been
+          defined with the :func:`transition` decorator, or that no attributes exists
+          with their name
+
+        - If no implementation was defined, adds a :class:`~base.TransitionImplementation` with a :func:`~base.noop` implementation
+
+        - Checks (with :meth:`_assert_may_override`) that the :class:`~base.TransitionImplementation` for the :class:`~base.Transition` is compatible with the existing attributes

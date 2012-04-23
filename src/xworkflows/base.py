@@ -365,13 +365,13 @@ class ImplementationList(object):
         """Collect the implementations from a given attributes dict."""
 
         def add_implem(transition, attr_name, function, check=None, before=None, after=None):
+            """Helper for adding a an implementation to the list."""
             implem = self._workflow.implementation_class(
                 transition, self.state_field, self._workflow, function,
                 check=check, before=before, after=after)
             self._implems[attr_name] = implem
             self._transitions_mapping[transition.name] = attr_name
 
-        # First, try to find all TransitionWrapper.
         for name, value in attrs.iteritems():
             if isinstance(value, TransitionWrapper):
                 if value.trname in self._workflow.transitions:
@@ -395,16 +395,19 @@ class ImplementationList(object):
 
     def _assert_may_override(self, implem, other, attrname):
         if isinstance(other, TransitionImplementation):
+            # Another TransitionImplementation, but not the same transition/workflow
             if other.transition != implem.transition or other.field_name != implem.field_name:
                 raise ValueError(
                     "Can't override transition implementation %s=%s with %s" %
                     (attrname, other, implem))
         elif isinstance(other, TransitionWrapper):
+            # A TransitionWrapper, but not the same Transition
             if other.trname != implem.transition.name:
                 raise ValueError(
                     "Can't override transition implementation %s=%s with %s" %
                     (attrname, other, implem))
         elif other != implem.implementation:
+            # Anything else, and not what this TransitionImplementation wrap.
             raise ValueError(
                 "Can't override attribute %s=%s with %s" %
                 (attrname, other, implem))

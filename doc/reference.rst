@@ -48,7 +48,7 @@ Those attributes will be transformed into similar attributes with friendlier API
   the appropriate :class:`~base.State`
 
 Accessing :class:`Workflow` states and transitions
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""""""""
 
 The :attr:`~Workflow.states` attribute, a :class:`~base.StateList` instance,
 provides a mixed dictionary/object API::
