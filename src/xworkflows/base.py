@@ -340,13 +340,6 @@ def noop(instance, *args, **kwargs):
     pass
 
 
-class NoOpTransitionImplementation(TransitionImplementation):
-    """A dummy transition implementation which does not perform any action."""
-
-    def __init__(self, transition_name, field_name, workflow):
-        super(NoOpTransitionImplementation, self).__init__(transition_name, field_name, workflow, noop)
-
-
 class ImplementationList(object):
     """Stores all implementations.
 
@@ -422,26 +415,34 @@ class ImplementationList(object):
 
     def update_attrs(self, attrs):
         for transition in self._workflow.transitions:
-            trname = transition.name
+            # Where to put the implementation
+            attrname = transition.name
+
             if transition.name in self._transitions_mapping:
+                # We had a custom implementation
                 attrname = self._transitions_mapping[transition.name]
                 implem = self._implems[attrname]
                 if implem.transition != transition:
+                    # Should never happen...
                     raise ValueError(
                         "Error for transition %s: implementation has been "
                         "overridden by %s." % (transition, implem))
-            else:
-                attrname = transition.name
-                if attrname in attrs:
-                    raise ValueError(
-                        "Error for transition %s: no implementation is defined, "
-                        "and the related attribute lacks a @transition "
-                        "decorator: %s" % (transition, attrs[attrname]))
+            elif attrname in attrs:
+                # No custom implementation, but name conflict.
+                raise ValueError(
+                    "Error for transition %s: no implementation is defined, "
+                    "and the related attribute lacks a @transition "
+                    "decorator: %s" % (transition, attrs[attrname]))
 
-                implem = NoOpTransitionImplementation(
-                    transition, self.state_field, self._workflow)
+            else:
+                # No custom implementation, no name conflict.
+                # Create a 'noop' transition
+                implem = self._workflow.implementation_class(
+                    transition, self.state_field, self._workflow, noop)
+
             if attrname in attrs:
                 self._assert_may_override(implem, attrs[attrname], attrname)
+
             self._add_implem(attrs, attrname, implem)
         return attrs
 
