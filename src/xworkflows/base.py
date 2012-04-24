@@ -204,30 +204,116 @@ def _setup_transitions(tdef, states, prev=()):
     return TransitionList(trs)
 
 
-class TransitionImplementation(object):
+class ImplementationWrapper(object):
+    """Wraps a transition implementation.
+
+    Emulates a function behaviour, but provides a few extra features.
+
+    Attributes:
+        instance (WorkflowEnabled): the instance to update
+.
+        field_name (str): the name of the field of the instance to update.
+        transition (Transition): the transition to perform
+        workflow (Workflow): the workflow to which this is related.
+
+        check (callable): optional function to call along with state checks to
+            determine whether the transition is available.
+        before (callable): optional callable to call *before* performing the
+            transition.
+        implementation (callable): the code to invoke between 'before' and the
+            state update.
+        after (callable): optional callable to call *after* changing the state
+            and logging the transition.
+    """
+
+    def __init__(self, instance, field_name, transition, workflow,
+            implementation, check=None, before=None, after=None):
+        self.instance = instance
+        self.field_name = field_name
+        self.transition = transition
+        self.workflow = workflow
+
+        self.check = check
+        self.before = before
+        self.implementation = implementation
+        self.after = after
+
+        self.__doc__ = implementation.__doc__
+
+    def _check_state(self):
+        current_state = getattr(self.instance, self.field_name)
+        if current_state not in self.transition.source:
+            raise InvalidTransitionError(
+                "Transition '%s' isn't available from state '%s'." %
+                (self.transition.name, current_state.name))
+
+    def _pre_transition(self, *args, **kwargs):
+        if self.check is not None:
+            if not self.check(self.instance):
+                raise ForbiddenTransition(
+                    "Transition '%s' was forbidden by "
+                    "custom pre-transition check." % self.transition.name)
+
+        if self.before is not None:
+            self.before(self.instance, *args, **kwargs)
+
+    def _during_transition(self, *args, **kwargs):
+        return self.implementation(self.instance, *args, **kwargs)
+
+    def _log_transition(self, from_state, *args, **kwargs):
+        self.workflow.log_transition(self.transition, from_state, self.instance,
+            *args, **kwargs)
+
+    def _post_transition(self, result, *args, **kwargs):
+        """Performs post-transition actions."""
+        if self.after is not None:
+            self.after(self.instance, result, *args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        """Run the transition, with all checks."""
+
+        self._check_state()
+        # Call hooks.
+        self._pre_transition(*args, **kwargs)
+
+        result = self._during_transition(*args, **kwargs)
+
+        from_state = getattr(self.instance, self.field_name)
+        setattr(self.instance, self.field_name, self.transition.target)
+
+        # Call hooks.
+        self._log_transition(from_state, *args, **kwargs)
+        self._post_transition(result, *args, **kwargs)
+        return result
+
+    def __repr__(self):
+        return "<%s for '%s' on '%s': %s>" % (self.__class__.__name__,
+            self.transition.name, self.field_name, self.implementation)
+
+
+class ImplementationProperty(object):
     """Holds an implementation of a transition.
 
     This class is a 'non-data descriptor', somewhat similar to a property.
 
-    The 'implementation' callable is called with the modified object as its
-    first argument; it may raise a AbortTransition exception to cancel the
-    transition.
-
     Attributes:
-        transition (Transition): the related transition
-        field_name (str): the name of the field storing the state (which should
-            be modified when the transition is called)
-        implementation (callable): the actual function to call when performing
-            the transition.
+        field_name (str): the name of the field of the instance to update.
+        transition (Transition): the transition to perform
+        workflow (Workflow): the workflow to which this is related.
+
+        check (callable): optional function to call along with state checks to
+            determine whether the transition is available.
         before (callable): optional callable to call *before* performing the
-            transition (but after state checks). If the return value evaluates
-            to False, the transition will be silently aborted.
-        after (callable): optional callable to call *after* performing the
-            transition (once the state has changed).
+            transition.
+        implementation (callable): the code to invoke between 'before' and the
+            state update.
+        after (callable): optional callable to call *after* changing the state
+            and logging the transition.
     """
-    def __init__(self, transition, field_name, workflow, implementation, check=None, before=None, after=None):
-        self.transition = transition
+    def __init__(self, field_name, transition, workflow, implementation,
+            check=None, before=None, after=None):
         self.field_name = field_name
+        self.transition = transition
         self.workflow = workflow
         self.check = check
         self.before = before
@@ -241,63 +327,17 @@ class TransitionImplementation(object):
 
         if not isinstance(instance, BaseWorkflowEnabled):
             raise TypeError(
-                "Unable to apply transition %s to object %s, which is not "
-                "attached to a Workflow." % (self.transition, instance))
+                "Unable to apply transition '%s' to object %r, which is not "
+                "attached to a Workflow." % (self.transition.name, instance))
 
-        @functools.wraps(self.implementation)
-        def actual_implementation(*args, **kwargs):
-            return self._run_implem(instance, *args, **kwargs)
-
-        return actual_implementation
-
-    def _check_state(self, instance):
-        current_state = getattr(instance, self.field_name)
-        if current_state not in self.transition.source:
-            raise InvalidTransitionError(
-                "Transition %s isn't available from state %s." %
-                (self.transition, current_state))
-
-    def _pre_transition(self, instance, *args, **kwargs):
-        if self.check is not None:
-            if not self.check(instance):
-                raise ForbiddenTransition(
-                    "Transition %s was forbidden by "
-                    "custom pre-transition check." % self.transition.name)
-
-        if self.before is not None:
-            self.before(instance, *args, **kwargs)
-
-    def _run_implem(self, instance, *args, **kwargs):
-        """Run the transition, with all checks."""
-
-        self._check_state(instance)
-        # Call hooks.
-        self._pre_transition(instance, *args, **kwargs)
-
-        res = self._during_transition(instance, *args, **kwargs)
-
-        from_state = getattr(instance, self.field_name)
-        setattr(instance, self.field_name, self.transition.target)
-
-        # Call hooks.
-        self._log_transition(instance, from_state, *args, **kwargs)
-        self._post_transition(instance, res, *args, **kwargs)
-        return res
-
-    def _during_transition(self, instance, *args, **kwargs):
-        return self.implementation(instance, *args, **kwargs)
-
-    def _log_transition(self, instance, from_state, *args, **kwargs):
-        self.workflow.log_transition(self.transition, from_state, instance,
-            *args, **kwargs)
-
-    def _post_transition(self, instance, res, *args, **kwargs):
-        """Performs post-transition actions."""
-        if self.after is not None:
-            self.after(instance, res, *args, **kwargs)
+        return self.workflow.implementation_class(instance,
+            self.field_name, self.transition, self.workflow,
+            self.implementation,
+            self.check, self.before, self.after)
 
     def __repr__(self):
-        return "<%s for %s on '%s': %s>" % (self.__class__.__name__, self.transition, self.field_name, self.implementation)
+        return "<%s for '%s' on '%s': %s>" % (self.__class__.__name__,
+            self.transition.name, self.field_name, self.implementation)
 
 
 class TransitionWrapper(object):
@@ -345,7 +385,7 @@ class ImplementationList(object):
 
     Attributes:
         state_field (str): the name of the field holding the state of objects.
-        _implems (dict(str => TransitionImplementation)): maps an attribute name
+        _implems (dict(str => ImplementationProperty)): maps an attribute name
             to the associated transition implementation.
         _transitions (TransitionList): list of expected transitions.
         _transitions_mapping (dict(str => str)): maps a transition name to the
@@ -366,9 +406,15 @@ class ImplementationList(object):
 
         def add_implem(transition, attr_name, function, check=None, before=None, after=None):
             """Helper for adding a an implementation to the list."""
-            implem = self._workflow.implementation_class(
-                transition, self.state_field, self._workflow, function,
-                check=check, before=before, after=after)
+            implem = ImplementationProperty(
+                field_name=self.state_field,
+                transition=transition,
+                workflow=self._workflow,
+                implementation=function,
+                check=check,
+                before=before,
+                after=after
+            )
             self._implems[attr_name] = implem
             self._transitions_mapping[transition.name] = attr_name
 
@@ -394,8 +440,8 @@ class ImplementationList(object):
                         check=value.check, before=value.before, after=value.after)
 
     def _assert_may_override(self, implem, other, attrname):
-        if isinstance(other, TransitionImplementation):
-            # Another TransitionImplementation, but not the same transition/workflow
+        if isinstance(other, ImplementationProperty):
+            # Another ImplementationProperty, but not the same transition/workflow
             if other.transition != implem.transition or other.field_name != implem.field_name:
                 raise ValueError(
                     "Can't override transition implementation %s=%s with %s" %
@@ -407,7 +453,7 @@ class ImplementationList(object):
                     "Can't override transition implementation %s=%s with %s" %
                     (attrname, other, implem))
         elif other != implem.implementation:
-            # Anything else, and not what this TransitionImplementation wrap.
+            # Anything else, and not what this ImplementationProperty wrap.
             raise ValueError(
                 "Can't override attribute %s=%s with %s" %
                 (attrname, other, implem))
@@ -440,8 +486,9 @@ class ImplementationList(object):
             else:
                 # No custom implementation, no name conflict.
                 # Create a 'noop' transition
-                implem = self._workflow.implementation_class(
-                    transition, self.state_field, self._workflow, noop)
+                implem = ImplementationProperty(
+                    field_name=self.state_field, transition=transition,
+                    workflow=self._workflow, implementation=noop)
 
             if attrname in attrs:
                 self._assert_may_override(implem, attrs[attrname], attrname)
@@ -493,16 +540,16 @@ class Workflow(object):
         states (StateList): list of states of this Workflow
         transitions (TransitionList): list of Transitions of this Workflow
         initial_state (State): initial state for the Workflow
-        implementation_class (TransitionImplementation subclass): class to use
+        implementation_class (ImplementationWrapper subclass): class to use
             for transition implementation wrapping.
 
-    For each transition, a TransitionImplementation with the same name (unless
+    For each transition, a ImplementationWrapper with the same name (unless
     another name has been specified through the use of the @transition
     decorator) is provided to perform the specified transition.
     """
     __metaclass__ = WorkflowMeta
 
-    implementation_class = TransitionImplementation
+    implementation_class = ImplementationWrapper
 
     def log_transition(self, transition, from_state, instance, *args, **kwargs):
         """Log a transition.

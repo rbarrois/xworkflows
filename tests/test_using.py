@@ -584,15 +584,15 @@ class ExtendedTransitionImplementationTestCase(unittest2.TestCase):
         self.MyWorkflow = MyWorkflow
 
     def test_implementation(self):
-        class MyImplementation(base.TransitionImplementation):
+        class MyImplementationWrapper(base.ImplementationWrapper):
             """Custom TransitionImplementation, with extra kwarg 'blah'."""
 
-            def _post_transition(self, instance, res, *args, **kwargs):
-                super(MyImplementation, self)._post_transition(instance, res, *args, **kwargs)
-                instance.blah = kwargs.get('blah', 42)
+            def _post_transition(self, res, *args, **kwargs):
+                super(MyImplementationWrapper, self)._post_transition(res, *args, **kwargs)
+                self.instance.blah = kwargs.get('blah', 42)
 
         class MyWorkflow(self.MyWorkflow):
-            implementation_class = MyImplementation
+            implementation_class = MyImplementationWrapper
 
         class MyWorkflowObject(base.WorkflowEnabled):
             state = MyWorkflow()

@@ -122,7 +122,7 @@ class StateWrapperTestCase(unittest2.TestCase):
         self.assertEqual(self.foo.title, self.sf.title)
 
 
-class TransitionImplementationTestCase(unittest2.TestCase):
+class ImplementationPropertyTestCase(unittest2.TestCase):
 
     def setUp(self):
         self.foo = base.State('foo', 'Foo')
@@ -135,12 +135,14 @@ class TransitionImplementationTestCase(unittest2.TestCase):
             """doc for blah"""
             pass
 
-        impl = base.TransitionImplementation(self.foobar, 'my_state', None, blah)
+        implem = base.ImplementationProperty(
+            field_name='my_state', transition=self.foobar, workflow=None,
+            implementation=blah)
 
-        self.assertIn("'foobar'", repr(impl))
-        self.assertIn("blah", repr(impl))
-        self.assertIn('my_state', repr(impl))
-        self.assertEqual('doc for blah', impl.__doc__)
+        self.assertIn("'foobar'", repr(implem))
+        self.assertIn("blah", repr(implem))
+        self.assertIn('my_state', repr(implem))
+        self.assertEqual('doc for blah', implem.__doc__)
 
     def test_using(self):
         def blah(obj):
@@ -149,7 +151,10 @@ class TransitionImplementationTestCase(unittest2.TestCase):
         class MyClass(object):
             state = self.foo
 
-        implem = base.TransitionImplementation(self.foobar, 'my_state', None, blah)
+        implem = base.ImplementationProperty(
+            field_name='my_state', transition=self.foobar, workflow=None,
+            implementation=blah)
+
 
         MyClass.foobar = implem
 
