@@ -98,9 +98,9 @@ For each transition of each related :class:`Workflow`, the :class:`~base.Workflo
 will add or enhance a method for each transition, according to the following rules:
 
 - If a class method is decorated with :func:`transition('XXX') <transition>` where ``XXX`` is the name of a transition,
-  that method becomes the :class:`~base.TransitionImplementation` for that transition
+  that method becomes the :class:`~base.ImplementationWrapper` for that transition
 - For each remaining transition, if a method exists with the same name *and* is decorated with
-  the :func:`~transition` decorator, it will be used as the :class:`~base.TransitionImplementation`
+  the :func:`~transition` decorator, it will be used for the :class:`~base.ImplementationWrapper`
   of the transition. Methods with a transition name but no decorator will raise a :exc:`TypeError` -- this ensures that
   all magic is somewhat explicit.
 - For all transitions which didn't have an implementation in the class definition, a new method is added to the class
@@ -194,17 +194,18 @@ the name of that :class:`~base.Transition` should be passed as first argument to
 Once decorated, any call to that method will perfom the following steps:
 
 #. Check that the current :class:`~base.State` of the object is a valid source for
-   the target :class:`~base.Transition` (raises :exc:`InvalidTransitionError` otherwise)
+   the target :class:`~base.Transition` (raises :exc:`InvalidTransitionError` otherwise);
 #. Checks that the optional :func:`check()` hook, if defined, returns ``True``
-   (raises :exc:`ForbiddenTransition` otherwise)
-#. Run the optional :func:`before()` hook, if defined (see below)
-#. Call the code of the function
-#. Change the :class:`~base.State` of the object
-#. Call the :func:`Workflow.log_transition` method of the related :class:`Workflow`
-#. Run the optional :func:`after()` hook, if defined (see below)
+   (raises :exc:`ForbiddenTransition` otherwise);
+#. Run the optional :func:`before()` hook, if defined;
+#. Call the code of the function;
+#. Change the :class:`~base.State` of the object;
+#. Call the :func:`Workflow.log_transition` method of the related :class:`Workflow`;
+#. Run the optional :func:`after()` hook, if defined.
 
 
-Transitions for which no implementation was defined will have a basic :class:`noop <base.NoOpTransitionImplementation>` implementation.
+Transitions for which no implementation was defined will have a basic :func:`~base.noop` implementation.
+
 
 Controlling transitions
 """""""""""""""""""""""
@@ -232,8 +233,47 @@ Three hooks are available, and are bound to the implementation at the :func:`tra
   - ``res``: the return value of the actual implementation;
   - ``*args`` and ``**kwargs``: the arguments passed to the actual implementation.
 
+
+Checking transition availability
+""""""""""""""""""""""""""""""""
+
+
+Some programs may need to display *available* transitions, without calling them.
+Instead of checking manually the :class:`state <base.State>` of the object and calling
+the appropriate :func:`check()` method if defined, you should simply call ``myobj.some_transition.is_available()``:
+
+.. sourcecode:: python
+
+    class MyObject(WorkflowEnabled):
+        state = MyWorkflow
+        x = 13
+
+        def check(self):
+            return self.x == 42
+
+        @transition(check=check)
+        def accept(self):
+            pass
+
+        @transition()
+        def cancel(self):
+            pass
+
+.. sourcecode:: pycon
+
+    >>> obj = MyObject()
+    >>> obj.accept.is_available()  # Forbidden by 'check'
+    False
+    >>> obj.cancel.is_available()  # Forbidden by current state
+    False
+    >>> obj.x = 42
+    >>> obj.accept.is_available()
+    True
+
+
 Logging transitions
 """""""""""""""""""
+
 
 The :func:`~Workflow.log_transition` method of a :class:`Workflow`
 allows logging each :class:`~base.Transition` performed by an object using that
@@ -248,5 +288,25 @@ This method is called with the following arguments:
 - ``**kwargs``: the keyword arguments passed to the transition implementation
 
 The default implementation logs (with the :mod:`logging` module) to the ``xworkflows.transitions`` logger.
-This behaviour can be overridden on a per-workflow basis.
+
+This behaviour can be overridden on a per-workflow basis: simply override the :func:`Workflow.log_transition` method.
+
+
+Advanced customization
+""""""""""""""""""""""
+
+In order to perform advanced tasks when running transitions, libraries may hook
+directly at the :class:`~base.ImplementationWrapper` level.
+
+For this, custom :class:`Workflow` classes should override the
+:attr:`Workflow.implementation_class` attribute with their custom subclass and add
+extra behaviour there.
+
+Possible customizations would be:
+
+- Wrapping implementation call and state update in a database transaction
+- Persisting the updated object after the transition
+- Adding workflow-level hooks to run before/after the transition
+- Performing the same sanity checks for all objects using that :class:`Workflow`
+- ...
 
