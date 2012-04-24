@@ -88,7 +88,7 @@ Using a workflow
 
 The process to apply a :class:`Workflow` to an object is quite straightforward:
 
-- Inherit from :class:`base.WorkflowEnabled`
+- Inherit from :class:`WorkflowEnabled`
 - Define one or more class-level attributes as ``foo = SomeWorkflow()``
 
 These attributes will be transformed into :class:`~base.StateProperty` objects,
@@ -104,7 +104,8 @@ will add or enhance a method for each transition, according to the following rul
   of the transition. Methods with a transition name but no decorator will raise a :exc:`TypeError` -- this ensures that
   all magic is somewhat explicit.
 - For all transitions which didn't have an implementation in the class definition, a new method is added to the class
-  definition. They have the same name as the transition, and a "noop" implementation.
+  definition.
+  They have the same name as the transition, and a :func:`~base.noop` implementation.
   :exc:`TypeError` is raised if a non-callable attribute already exists for a transition name.
 
 
@@ -122,7 +123,7 @@ to a plain attribute:
       Traceback (most recent call last):
           File "<stdin>", line 1, in <module>
       ValueError: Value State('foo') is not a valid state for workflow MyWorkflow.
-    
+
 - It defaults to the :attr:`~Workflow.initial_state` of the :class:`Workflow` if no
   value was set::
 
@@ -150,7 +151,7 @@ to a plain attribute:
       >>> obj.state.is_ready
       False
 
-  - Native equivalence to the :attr:`state's name <base.State.name>`
+  - Native equivalence to the :attr:`state's name <base.State.name>`::
 
       >>> obj.state == 'init'
       True
@@ -167,6 +168,9 @@ to a plain attribute:
               from typos in the code (:exc:`AttributeError` would be raised), whereas
               raw strings provide no such guarantee.
 
+
+Using transitions
+-----------------
 
 Defining a transition implementation
 """"""""""""""""""""""""""""""""""""
@@ -195,13 +199,13 @@ Once decorated, any call to that method will perfom the following steps:
 
 #. Check that the current :class:`~base.State` of the object is a valid source for
    the target :class:`~base.Transition` (raises :exc:`InvalidTransitionError` otherwise);
-#. Checks that the optional :func:`check()` hook, if defined, returns ``True``
+#. Checks that the optional :func:`~base.ImplementationWrapper.check` hook, if defined, returns ``True``
    (raises :exc:`ForbiddenTransition` otherwise);
-#. Run the optional :func:`before()` hook, if defined;
+#. Run the optional :func:`~base.ImplementationWrapper.before` hook, if defined;
 #. Call the code of the function;
 #. Change the :class:`~base.State` of the object;
 #. Call the :func:`Workflow.log_transition` method of the related :class:`Workflow`;
-#. Run the optional :func:`after()` hook, if defined.
+#. Run the optional :func:`~base.ImplementationWrapper.after` hook, if defined.
 
 
 Transitions for which no implementation was defined will have a basic :func:`~base.noop` implementation.
@@ -210,10 +214,10 @@ Transitions for which no implementation was defined will have a basic :func:`~ba
 Controlling transitions
 """""""""""""""""""""""
 
-According to the order above, preventing a :class:`State` change can be done:
+According to the order above, preventing a :class:`~base.State` change can be done:
 
-- By returning ``False`` in a custom :func:`check()` hook;
-- By raising any exception in the custom :func:`before()` hook;
+- By returning ``False`` in a custom :func:`~base.ImplementationWrapper.check` hook;
+- By raising any exception in the custom :func:`~base.ImplementationWrapper.before` hook;
 - By raising any exception in the actual implementation.
 
 
@@ -240,7 +244,7 @@ Checking transition availability
 
 Some programs may need to display *available* transitions, without calling them.
 Instead of checking manually the :class:`state <base.State>` of the object and calling
-the appropriate :func:`check()` method if defined, you should simply call ``myobj.some_transition.is_available()``:
+the appropriate :func:`~base.ImplementationWrapper.check` method if defined, you should simply call ``myobj.some_transition.is_available()``:
 
 .. sourcecode:: python
 
@@ -308,5 +312,4 @@ Possible customizations would be:
 - Persisting the updated object after the transition
 - Adding workflow-level hooks to run before/after the transition
 - Performing the same sanity checks for all objects using that :class:`Workflow`
-- ...
 

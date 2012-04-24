@@ -33,7 +33,7 @@ The :mod:`xworkflows` module exposes a few specific exceptions:
 
 .. exception:: ForbiddenTransition(AbortTransition)
 
-    This exception will be raised when the :attr:`check` parameter of the
+    This exception will be raised when the :attr:`~base.ImplementationWrapper.check` parameter of the
     :func:`transition` decorator returns a non-``True`` value.
 
 
@@ -253,7 +253,7 @@ This is converted into a :class:`~base.TransitionList` object.
 Workflow attributes
 """""""""""""""""""
 
-A :class:`Workflow` should inherit from the :class:`Workflow` base class, or use the :class:`WorkflowMeta` metaclass
+A :class:`Workflow` should inherit from the :class:`Workflow` base class, or use the :class:`~base.WorkflowMeta` metaclass
 (that builds the :attr:`~Workflow.states`, :attr:`~Workflow.transitions`, :attr:`~Workflow.initial_state` attributes).
 
 .. class:: Workflow
@@ -289,10 +289,21 @@ A :class:`Workflow` should inherit from the :class:`Workflow` base class, or use
 
     .. attribute:: implementation_class
 
-        The class to use when creating :class:`~base.TransitionImplementation` for a :class:`WorkflowEnabled` using this :class:`Workflow`.
+        The class to use when creating :class:`~base.ImplementationWrapper` for a :class:`WorkflowEnabled` using this :class:`Workflow`.
 
-        Defaults to :class:`~base.TransitionImplementation`.
+        Defaults to :class:`~base.ImplementationWrapper`.
 
+
+.. class:: base.WorkflowMeta
+
+    This metaclass will simply convert the :attr:`~Workflow.states`, :attr:`~Workflow.transitions` and :attr:`~Workflow.initial_state`
+    class attributes into the related :class:`~base.StateList`, :class:`~base.TransitionList` and :class:`~base.State` objects.
+
+    During this process, some sanity checks are performed:
+
+    - Each source/target :class:`~base.State` of a :class:`~base.Transition` must appear in
+      :attr:`~Workflow.states`
+    - The :attr:`~Workflow.initial_state` must appear in :attr:`~Workflow.states`.
 
 
 Applying workflows
@@ -305,8 +316,8 @@ In order to use a :class:`Workflow`, related objects should inherit from the :cl
 
     This class will handle all specific setup related to using :class:`workflows <Workflow>`:
 
-    - Converting ``attr = SomeWorkflow()`` into a :class:`~base.StateProperty` class attribute*
-    - Wrapping all :func:`transition`-decorated functions into :class:`~base.TransitionImplementation` wrappers
+    - Converting ``attr = SomeWorkflow()`` into a :class:`~base.StateProperty` class attribute
+    - Wrapping all :func:`transition`-decorated functions into :class:`~base.ImplementationProperty` wrappers
     - Adding noop implementations for other transitions
 
     .. attribute:: _workflows
@@ -370,12 +381,38 @@ Advanced customization
 """"""""""""""""""""""
 
 Once :class:`~base.WorkflowEnabledMeta` has updated the :class:`WorkflowEnabled` subclass,
-all transitions -- initially defined and automatically added -- are replaced with a :class:`base.TransitionImplementation` instance.
+all transitions -- initially defined and automatically added -- are replaced with a :class:`base.ImplementationProperty` instance.
 
-.. class:: base.TransitionImplementation
+.. class:: base.ImplementationProperty
+
+    This class holds all objects required to instantiate a :class:`~base.ImplementationWrapper`
+    whenever the attribute is accessed on an instance.
+
+    Internally, it acts as a 'non-data descriptor', close to :func:`property`.
+
+    .. method:: __get__(self, instance, owner)
+
+        This method overrides the :func:`getattr` behavior:
+
+        - When called without an instance (``instance=None``), returns itself
+        - When called with an instance, this will instantiate a :class:`~base.ImplementationWrapper`
+          attached to that instance and return it.
+
+
+.. class:: base.ImplementationWrapper
 
     This class handles applying a :class:`~base.Transition` to a :class:`WorkflowEnabled` object.
-    Internally, it acts as a 'non-data descriptor', close to :func:`property`.
+
+    .. attribute:: instance
+
+        The :class:`WorkflowEnabled` object to modify when :func:`calling <__call__>` this wrapper.
+
+    .. attribute:: field_name
+
+        The name of the field modified by this :class:`~base.ImplementationProperty` (a string)
+
+        :type: str
+
 
     .. attribute:: transition
 
@@ -384,16 +421,9 @@ all transitions -- initially defined and automatically added -- are replaced wit
         :type: :class:`~base.Transition`
 
 
-    .. attribute:: field_name
-
-        The name of the field modified by this :class:`~base.TransitionImplementation` (a string)
-
-        :type: str
-
-
     .. attribute:: workflow
 
-        The :class:`Workflow` to which this :class:`~base.TransitionImplementation` relates.
+        The :class:`Workflow` to which this :class:`~base.ImplementationProperty` relates.
 
         :type: :class:`Workflow`
 
@@ -440,28 +470,48 @@ all transitions -- initially defined and automatically added -- are replaced wit
         - The ``**kwargs`` used when calling the transition
 
 
+    .. method:: __call__
+
+        This method allows the :class:`~base.TransitionWrapper` to act as a function,
+        performing the whole range of checks and hooks before and after calling the
+        actual :attr:`implementation`.
+
+
+    .. method:: is_available()
+
+        Determines whether the wrapped transition implementation can be called.
+        In details:
+
+        - it makes sure that the current state of the instance is compatible with
+          the transition;
+        - it calls the :attr:`check` attribute, if defined.
+
+        :rtype: :class:`bool`
+
+
+
 .. function:: base.noop(instance)
 
     The 'do-nothing' function called as default implementation of transitions.
 
 
-Collecting the :class:`~base.TransitionImplementation`
-""""""""""""""""""""""""""""""""""""""""""""""""""""""
+Collecting the :class:`~base.ImplementationProperty`
+""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 .. warning:: This documents private APIs. Use at your own risk.
 
 
-Building the list of :class:`~base.TransitionImplementation` for a given :class:`WorkflowEnabled`, and generating the missing ones, is a complex job.
+Building the list of :class:`~base.ImplementationProperty` for a given :class:`WorkflowEnabled`, and generating the missing ones, is a complex job.
 
 
-.. class:: ImplementationList
+.. class:: base.ImplementationList
 
     This class performs a few low-level operations on a :class:`WorkflowEnabled` class:
 
     - Collecting :class:`~base.TransitionWrapper` attributes
-    - Converting them into :class:`~base.TransitionImplementation`
+    - Converting them into :class:`~base.ImplementationProperty`
     - Adding :func:`~base.noop` implementations for remaining :class:`~base.Transition`
-    - Updating the class attributes with those :class:`~base.TransitionImplementation`
+    - Updating the class attributes with those :class:`~base.ImplementationProperty`
 
     .. attribute:: state_field
 
@@ -475,13 +525,13 @@ Building the list of :class:`~base.TransitionImplementation` for a given :class:
 
     .. attribute:: _implems
 
-        Dict mapping an attribute name to the :class:`~base.TransitionImplementation` that should fill it
+        Dict mapping an attribute name to the :class:`~base.ImplementationProperty` that should fill it
 
-        :type: :class:`dict` (:class:`str` => :class:`~base.TransitionImplementation`)
+        :type: :class:`dict` (:class:`str` => :class:`~base.ImplementationProperty`)
 
     .. attribute:: _transitions_mapping
 
-        Dict mapping the name of a transition to the attribute holding its :class:`~base.TransitionImplementation`::
+        Dict mapping the name of a transition to the attribute holding its :class:`~base.ImplementationProperty`::
 
             @transition('foo')
             def bar(self):
@@ -502,21 +552,21 @@ Building the list of :class:`~base.TransitionImplementation` for a given :class:
 
     .. method:: _assert_may_override(self, implem, other, attrname)
 
-        Checks whether the :attr:`implem` :class:`~base.TransitionImplementation` is a
-        valid override for the :attr:`other` :class:`~base.TransitionImplementation` when
+        Checks whether the :attr:`implem` :class:`~base.ImplementationProperty` is a
+        valid override for the :attr:`other` :class:`~base.ImplementationProperty` when
         defined as the :attr:`attrname` class attribute.
 
         Rules are:
 
-        - A :class:`~base.TransitionImplementation` may not override another :class:`~base.TransitionImplementation` for another :class:`~base.Transition` or another :class:`Workflow`
-        - A :class:`~base.TransitionImplementation` may not override a :class:`~base.TransitionWrapper` unless both handle the same :class:`~base.Transition`
-        - A :class:`~base.TransitionImplementation` may not override other types of previous definitions,
-          unless that previous definition is the wrapped :attr:`~base.TransitionImplementation.implementation`.
+        - A :class:`~base.ImplementationProperty` may not override another :class:`~base.ImplementationProperty` for another :class:`~base.Transition` or another :class:`Workflow`
+        - A :class:`~base.ImplementationProperty` may not override a :class:`~base.TransitionWrapper` unless both handle the same :class:`~base.Transition`
+        - A :class:`~base.ImplementationProperty` may not override other types of previous definitions,
+          unless that previous definition is the wrapped :attr:`~base.ImplementationProperty.implementation`.
 
 
     .. method:: update_attrs(self, attrs)
 
-        Adds all :class:`~base.TransitionImplementation` from :attr:`_implems` to the
+        Adds all :class:`~base.ImplementationProperty` from :attr:`_implems` to the
         given attributes dict.
 
         Performs the following checks:
@@ -525,6 +575,6 @@ Building the list of :class:`~base.TransitionImplementation` for a given :class:
           defined with the :func:`transition` decorator, or that no attributes exists
           with their name
 
-        - If no implementation was defined, adds a :class:`~base.TransitionImplementation` with a :func:`~base.noop` implementation
+        - If no implementation was defined, adds a :class:`~base.ImplementationProperty` with a :func:`~base.noop` implementation
 
-        - Checks (with :meth:`_assert_may_override`) that the :class:`~base.TransitionImplementation` for the :class:`~base.Transition` is compatible with the existing attributes
+        - Checks (with :meth:`_assert_may_override`) that the :class:`~base.ImplementationProperty` for the :class:`~base.Transition` is compatible with the existing attributes
