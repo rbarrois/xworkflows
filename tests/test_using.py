@@ -492,7 +492,7 @@ class CustomImplementationTestCase(unittest2.TestCase):
             transitions = (
                 ('foobar', 'foo', 'bar'),
                 ('gobaz', ('foo', 'bar'), 'baz'),
-                ('bazbar', 'baz', 'bar'),
+                ('barbaz', 'bar', 'baz'),
             )
             initial_state = 'foo'
 
@@ -562,6 +562,45 @@ class CustomImplementationTestCase(unittest2.TestCase):
 
         self.assertRaises(KeyError, obj.gobaz)
         self.assertEqual(self.MyWorkflow.states.foo, obj.state)
+
+    def test_checks(self):
+        class MyWorkflowObject(base.WorkflowEnabled):
+            state = self.MyWorkflow()
+            x = 13
+
+            def check_foobar(self):
+                return self.x == 42
+
+            @base.transition(check=check_foobar)
+            def foobar(self):
+                pass
+
+            def check_barbaz(self):
+                return False
+
+            @base.transition(check=check_barbaz)
+            def barbaz(self):
+                pass
+
+        obj = MyWorkflowObject()
+
+        # Not available from state==foo
+        self.assertRaises(base.InvalidTransitionError, obj.barbaz)
+        self.assertFalse(obj.barbaz.is_available())
+
+        # Transition forbidden by check_foobar
+        self.assertEqual(self.MyWorkflow.states.foo, obj.state)
+        self.assertRaises(base.ForbiddenTransition, obj.foobar)
+        self.assertFalse(obj.foobar.is_available())
+        self.assertEqual(self.MyWorkflow.states.foo, obj.state)
+
+        obj.x = 42
+        self.assertTrue(obj.foobar.is_available())
+        obj.foobar()
+        self.assertEqual(self.MyWorkflow.states.bar, obj.state)
+
+        self.assertRaises(base.ForbiddenTransition, obj.barbaz)
+        self.assertFalse(obj.barbaz.is_available())
 
 
 class ExtendedTransitionImplementationTestCase(unittest2.TestCase):
