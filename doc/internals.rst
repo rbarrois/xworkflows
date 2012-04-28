@@ -519,17 +519,17 @@ Building the list of :class:`~base.ImplementationProperty` for a given :class:`W
 
         :type: :class:`str`
 
-    .. attribute:: _workflow
+    .. attribute:: workflow
 
         The :class:`Workflow` this :class:`~base.ImplementationList` refers to
 
-    .. attribute:: _implems
+    .. attribute:: implementations
 
-        Dict mapping an attribute name to the :class:`~base.ImplementationProperty` that should fill it
+        Dict mapping a transition name to the related :class:`~base.ImplementationProperty`
 
         :type: :class:`dict` (:class:`str` => :class:`~base.ImplementationProperty`)
 
-    .. attribute:: _transitions_mapping
+    .. attribute:: transitions_at
 
         Dict mapping the name of a transition to the attribute holding its :class:`~base.ImplementationProperty`::
 
@@ -539,42 +539,64 @@ Building the list of :class:`~base.ImplementationProperty` for a given :class:`W
 
         will translate into::
 
-            self._implems == {'bar': <function bar at 0xdeadbeed>}
-            self._transitions_mapping == {'foo': 'bar'}
+            self.implementations == {'foo': <ImplementationProperty for 'foo' on 'state': <function bar at 0xdeadbeed>>}
+            self.transitions_at == {'foo': 'bar'}
+
+
+    .. method:: should_collect(self, value)
+
+        Whether a given attribute value should be collected in the current list.
+
+        Checks that it is a :class:`~base.TransitionWrapper`, for a :class:`~base.Transition`
+        of the current :class:`Workflow`, and relates to the current :attr:`state_field`.
 
 
     .. method:: collect(self, attrs)
 
-        Collects all :class:`~base.TransitionWrapper` from an attribute dict.
+        Collects all :class:`~base.TransitionWrapper` from an attribute dict if they
+        verify :func:`should_collect`.
 
         :raises: ValueError
             If two :class:`~base.TransitionWrapper` for a same :class:`~base.Transition` are defined in the attributes.
 
-    .. method:: _assert_may_override(self, implem, other, attrname)
+
+    .. method:: add_missing_implementations(self)
+
+        Registers :func:`~base.noop` :class:`~base.ImplementationProperty` for all
+        :class:`~base.Transition` that weren't collected in the :func:`collect` step.
+
+
+    .. method:: _may_override(self, implem, other)
 
         Checks whether the :attr:`implem` :class:`~base.ImplementationProperty` is a
-        valid override for the :attr:`other` :class:`~base.ImplementationProperty` when
-        defined as the :attr:`attrname` class attribute.
+        valid override for the :attr:`other` :class:`~base.ImplementationProperty`.
 
         Rules are:
 
-        - A :class:`~base.ImplementationProperty` may not override another :class:`~base.ImplementationProperty` for another :class:`~base.Transition` or another :class:`Workflow`
-        - A :class:`~base.ImplementationProperty` may not override a :class:`~base.TransitionWrapper` unless both handle the same :class:`~base.Transition`
-        - A :class:`~base.ImplementationProperty` may not override other types of previous definitions,
-          unless that previous definition is the wrapped :attr:`~base.ImplementationProperty.implementation`.
+        - A :class:`~base.ImplementationProperty` may not override another :class:`~base.ImplementationProperty` for another :class:`~base.Transition` or another :attr:`state_field`
+        - A :class:`~base.ImplementationProperty` may not override a :class:`~base.TransitionWrapper` unless it was generated from that :class:`~base.TransitionWrapper`
+        - A :class:`~base.ImplementationProperty` may not override other types of previous definitions.
 
 
-    .. method:: update_attrs(self, attrs)
+    .. method:: fill_attrs(self, attrs)
 
-        Adds all :class:`~base.ImplementationProperty` from :attr:`_implems` to the
-        given attributes dict.
+        Adds all :class:`~base.ImplementationProperty` from :attr:`implementations` to the
+        given attributes dict, unless :meth:`_may_override` prevents the operation.
 
-        Performs the following checks:
 
-        - Makes sure that each :class:`~base.Transition` from the :class:`Workflow` have been
-          defined with the :func:`transition` decorator, or that no attributes exists
-          with their name
+    .. method:: transform(self, attrs, add_missing=True)
 
-        - If no implementation was defined, adds a :class:`~base.ImplementationProperty` with a :func:`~base.noop` implementation
+        :param dict attrs: Mapping holding attribute declarations from a class definition
+        :param add_missing: Whether implementations should be added for transitions
+                            without an implementation.
 
-        - Checks (with :meth:`_assert_may_override`) that the :class:`~base.ImplementationProperty` for the :class:`~base.Transition` is compatible with the existing attributes
+        Performs the following actions, in order:
+
+        - :meth:`collect`: Create :class:`~base.ImplementationProperty` from the
+          :class:`transition wrappers <base.TransitionWrapper>` in the :attr:`attrs` dict
+        - :meth:`add_missing_implementations`, if :attr:`add_missing` is ``True``:
+          create :class:`~base.ImplementationProperty` for the remaining :class:`transitions <base.Transition>`
+        - :meth:`fill_attrs`: Update the :attr:`attrs` dict with the
+          :class:`implementations <base.ImplementationProperty>` defined in the
+          previous steps.
+

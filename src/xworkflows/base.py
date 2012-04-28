@@ -398,125 +398,111 @@ class ImplementationList(object):
 
     Attributes:
         state_field (str): the name of the field holding the state of objects.
-        _implems (dict(str => ImplementationProperty)): maps an attribute name
-            to the associated transition implementation.
-        _transitions (TransitionList): list of expected transitions.
-        _transitions_mapping (dict(str => str)): maps a transition name to the
+        implementations (dict(str => ImplementationProperty)): maps a transition
+            name to the associated implementation.
+        workflow (Workflow): the related workflow
+        transitions_at (dict(str => str)): maps a transition name to the
             name of the attribute holding the related transition.
     """
 
     def __init__(self, state_field, workflow):
         self.state_field = state_field
-        self._implems = {}
-        self._transitions_mapping = {}
-        self._workflow = workflow
+        self.workflow = workflow
+        self.implementations = {}
+        self.transitions_at = {}
 
-    def _get_implem(self, transition_name):
-        return self._implems[self._transitions_mapping[transition_name]]
+    def add_implem(self, transition, attribute, function, **kwargs):
+        """Add an implementation.
+
+        Args:
+            transition (Transition): the transition for which the implementation
+                is added
+            attribute (str): the name of the attribute where the implementation
+                will be available
+            function (callable): the actual implementation function
+            **kwargs: extra arguments for the related ImplementationProperty.
+        """
+        implem = ImplementationProperty(
+            field_name=self.state_field,
+            transition=transition,
+            workflow=self.workflow,
+            implementation=function,
+            **kwargs)
+        self.implementations[transition.name] = implem
+        self.transitions_at[transition.name] = attribute
+
+    def should_collect(self, value):
+        """Decide whether a given value should be collected."""
+        return (
+            # decorated with @transition
+            isinstance(value, TransitionWrapper)
+            # Relates to a compatible transition
+            and value.trname in self.workflow.transitions
+            # Either not bound to a state field or bound to the current one
+            and (not value.field or value.field == self.state_field))
 
     def collect(self, attrs):
         """Collect the implementations from a given attributes dict."""
 
-        def add_implem(transition, attr_name, function, check=None, before=None, after=None):
-            """Helper for adding a an implementation to the list."""
-            implem = ImplementationProperty(
-                field_name=self.state_field,
-                transition=transition,
-                workflow=self._workflow,
-                implementation=function,
-                check=check,
-                before=before,
-                after=after
-            )
-            self._implems[attr_name] = implem
-            self._transitions_mapping[transition.name] = attr_name
-
         for name, value in attrs.iteritems():
-            if isinstance(value, TransitionWrapper):
-                if value.trname in self._workflow.transitions:
-                    if value.field and value.field != self.state_field:
-                        # Applying for another workflow
-                        continue
+            if self.should_collect(value):
+                transition = self.workflow.transitions[value.trname]
 
-                    transition = self._workflow.transitions[value.trname]
-
-                    if value.trname in self._transitions_mapping:
-                        # Some other function used @transition(value.trname)
-                        other_implem = self._get_implem(value.trname)
-                        raise ValueError(
-                            "Error for attribute %s: it defines implementation "
-                            "%s for transition %s, which is already implemented "
-                            "as %s." % (name, value, transition,
-                                self._get_implem(value.trname)))
-
-                    add_implem(transition, name, value.func,
-                        check=value.check, before=value.before, after=value.after)
-
-    def _assert_may_override(self, implem, other, attrname):
-        if isinstance(other, ImplementationProperty):
-            # Another ImplementationProperty, but not the same transition/workflow
-            if other.transition != implem.transition or other.field_name != implem.field_name:
-                raise ValueError(
-                    "Can't override transition implementation %s=%s with %s" %
-                    (attrname, other, implem))
-        elif isinstance(other, TransitionWrapper):
-            # A TransitionWrapper, but not the same Transition
-            if other.trname != implem.transition.name:
-                raise ValueError(
-                    "Can't override transition implementation %s=%s with %s" %
-                    (attrname, other, implem))
-        elif other != implem.implementation:
-            # Anything else, and not what this ImplementationProperty wrap.
-            raise ValueError(
-                "Can't override attribute %s=%s with %s" %
-                (attrname, other, implem))
-
-    @classmethod
-    def _add_implem(cls, attrs, attrname, implem):
-        attrs[attrname] = implem
-
-    def update_attrs(self, attrs):
-        for transition in self._workflow.transitions:
-            # Where to put the implementation
-            attrname = transition.name
-
-            if transition.name in self._transitions_mapping:
-                # We had a custom implementation
-                attrname = self._transitions_mapping[transition.name]
-                implem = self._implems[attrname]
-                if implem.transition != transition:
-                    # Should never happen...
+                if value.trname in self.implementations:
+                    # We already have an implementation registered.
+                    other_implem_at = self.transitions_at[value.trname]
                     raise ValueError(
-                        "Error for transition %s: implementation has been "
-                        "overridden by %s." % (transition, implem))
-            elif attrname in attrs:
-                # No custom implementation, but name conflict.
-                raise ValueError(
-                    "Error for transition %s: no implementation is defined, "
-                    "and the related attribute lacks a @transition "
-                    "decorator: %s" % (transition, attrs[attrname]))
+                        "Error for attribute %s: it defines implementation "
+                        "%s for transition %s, which is already implemented "
+                        "at %s." % (name, value, transition, other_implem_at))
 
-            else:
-                # No custom implementation, no name conflict.
-                # Create a 'noop' transition
-                implem = ImplementationProperty(
-                    field_name=self.state_field, transition=transition,
-                    workflow=self._workflow, implementation=noop)
+                self.add_implem(transition, name, value.func,
+                    check=value.check, before=value.before, after=value.after)
+
+    def add_missing_implementations(self):
+        for transition in self.workflow.transitions:
+            if transition.name not in self.implementations:
+                self.add_implem(transition, transition.name, noop)
+
+    def _may_override(self, implem, other):
+        """Checks whether an ImplementationProperty may override an attribute."""
+        if isinstance(other, ImplementationProperty):
+            # Overriding another custom implementation for the same transition
+            # and field
+            return (other.transition == implem.transition
+                and other.field_name == self.state_field)
+
+        elif isinstance(other, TransitionWrapper):
+            # Overriding the definition that led to adding the current
+            # ImplementationProperty.
+            return (other.trname == implem.transition.name
+                and (not other.field or other.field == self.state_field)
+                and other.func == implem.implementation)
+
+        return False
+
+    def fill_attrs(self, attrs):
+        """Update the 'attrs' dict with generated ImplementationProperty."""
+        for trname, attrname in self.transitions_at.items():
+
+            implem = self.implementations[trname]
 
             if attrname in attrs:
-                self._assert_may_override(implem, attrs[attrname], attrname)
+                conflicting = attrs[attrname]
+                if not self._may_override(implem, conflicting):
+                    raise ValueError(
+                        "Can't override transition implementation %s=%r with %r" %
+                        (attrname, conflicting, implem))
 
-            self._add_implem(attrs, attrname, implem)
+            attrs[attrname] = implem
         return attrs
 
-    def __getitem__(self, trname):
-        attrname = self._transitions_mapping[trname]
-        return self._implems[attrname]
-
-    def __contains__(self, trname):
-        if not trname in self._transitions_mapping:
-            return False
-        return self._transitions_mapping[trname] in self._implems
+    def transform(self, attrs, add_missing=True):
+        """Perform all actions on a given attribute dict."""
+        self.collect(attrs)
+        if add_missing:
+            self.add_missing_implementations()
+        self.fill_attrs(attrs)
 
     def __repr__(self):
         return '<%s: %r>' % (self.__class__.__name__, self._implems.values())
@@ -682,6 +668,9 @@ class WorkflowEnabledMeta(type):
         """Attach a workflow to the attribute list (create a StateProperty)."""
         attrs[field_name] = StateProperty(state_field.workflow, field_name)
 
+        implems = ImplementationList(field_name, state_field.workflow)
+        implems.transform(attrs)
+
     @classmethod
     def _find_workflows(mcs, attrs):
         """Finds all occurrences of a workflow in the attributes definitions.
@@ -691,22 +680,17 @@ class WorkflowEnabledMeta(type):
                 describing the related Workflow.
         """
         workflows = {}
-        for k, v in attrs.items():
-            if isinstance(v, Workflow):
-                workflows[k] = StateField(v)
+        for attribute, value in attrs.items():
+            if isinstance(value, Workflow):
+                workflows[attribute] = StateField(value)
         return workflows
 
     def __new__(mcs, name, bases, attrs):
         workflows = mcs._find_workflows(attrs)
-        for field_name, state_field in workflows.iteritems():
+        for field_name, state_field in workflows.items():
             mcs._add_workflow(field_name, state_field, attrs)
 
-            implems = ImplementationList(field_name, state_field.workflow)
-            implems.collect(attrs)
-            implems.update_attrs(attrs)
-
-        attrs['_workflows'] = dict((field_name, state_field.workflow)
-            for field_name, state_field in workflows.items())
+        attrs['_workflows'] = workflows
         return super(WorkflowEnabledMeta, mcs).__new__(mcs, name, bases, attrs)
 
 
