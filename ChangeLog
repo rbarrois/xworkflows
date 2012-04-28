@@ -1,5 +1,11 @@
-0.2.5 (XX/XX/XXXX)
+0.3.0 (28/04/2012)
 ------------------
+
+*New:*
+
+    * Allow and document customization of the :class:`~base.ImplementationWrapper`
+    * Add a method to check whether a transition is available from the current instance
+    * Cleanup :class:`~base.ImplementationList` and improve its documentation
 
 0.2.4 (23 04 2012)
 ------------------
