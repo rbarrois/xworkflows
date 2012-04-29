@@ -698,7 +698,7 @@ class BaseWorkflowEnabled(object):
     """Base class for all objects using a workflow.
 
     Attributes:
-        _workflows (dict(str, Workflow)): Maps the name of a 'state_field' to
+        workflows (dict(str, StateField)): Maps the name of a 'state_field' to
             the related Workflow
     """
 

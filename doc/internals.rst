@@ -10,7 +10,11 @@ This document presents the various classes and components of XWorkflows.
 .. note:: All objects defined in the :mod:`base` module should be considered internal API
           and subject to change without notice.
 
-          Refer to ``xworkflows.__init__.py`` to get a list of public objects and methods.
+          Public API consists of the public methods and attributes of the following objects:
+
+          - The :func:`transition` function;
+          - The :class:`Workflow` and :class:`WorkflowEnabled` classes;
+          - The :exc:`WorkflowError`, :exc:`AbortTransition`, :exc:`InvalidTransitionError` and :exc:`ForbiddenTransition` exceptions.
 
 Exceptions
 ----------
