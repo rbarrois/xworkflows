@@ -590,7 +590,7 @@ class State(object):
         if not self.STATE_NAME_RE.match(name):
             raise ValueError('Invalid state name %s.' % name)
         self.name = name
-        if not title:
+        if title is None:
             title = name
         self.title = title
 
