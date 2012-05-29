@@ -36,8 +36,6 @@ class State(object):
         if not self.STATE_NAME_RE.match(name):
             raise ValueError('Invalid state name %s.' % name)
         self.name = name
-        if not title:
-            title = name
         self.title = title
 
     def __repr__(self):
