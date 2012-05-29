@@ -9,7 +9,7 @@ from xworkflows import base
 class StateTestCase(unittest2.TestCase):
 
     def test_definition(self):
-        self.assertRaises(ValueError, base.State, 'a--b')
+        self.assertRaises(ValueError, base.State, 'a--b', 'A--B')
 
     def test_equality(self):
         self.assertNotEqual(base.State('foo', 'Foo'), base.State('foo', 'Foo'))

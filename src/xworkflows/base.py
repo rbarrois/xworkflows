@@ -32,7 +32,7 @@ class State(object):
     """
     STATE_NAME_RE = re.compile('\w+$')
 
-    def __init__(self, name, title=None):
+    def __init__(self, name, title):
         if not self.STATE_NAME_RE.match(name):
             raise ValueError('Invalid state name %s.' % name)
         self.name = name

@@ -53,7 +53,7 @@ States may be represented with different objects:
 The :class:`~base.State` class
 """"""""""""""""""""""""""""""
 
-.. class:: base.State(name[, title=None])
+.. class:: base.State(name, title)
 
     This class describes a state in the most simple manner: with an internal name and a human-readable title.
 
@@ -65,7 +65,6 @@ The :class:`~base.State` class
     .. attribute:: title
 
         The title of the :class:`~base.State`; used for display to users.
-        If absent, this is a copy of :attr:`name`.
 
 
 The :class:`StateWrapper` class
