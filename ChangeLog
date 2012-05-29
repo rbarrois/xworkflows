@@ -1,3 +1,11 @@
+0.3.1 (29/05/2012)
+------------------
+
+*Bugfix:*
+
+    * Make the :attr:`~State.title` argument mandatory in :class:`State`
+      initialization
+
 0.3.0 (30/04/2012)
 ------------------
 
