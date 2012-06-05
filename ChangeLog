@@ -1,3 +1,10 @@
+0.3.2 (05/06/2012)
+------------------
+
+*Bugfix:*
+
+    * Fix transition logging for objects whose __repr__ doesn't convert to unicode.
+
 0.3.1 (29/05/2012)
 ------------------
 
