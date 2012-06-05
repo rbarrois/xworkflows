@@ -343,6 +343,9 @@ class TransitionRunningTestCase(unittest2.TestCase):
         class MyWorkflowObject(base.WorkflowEnabled):
             state = MyWorkflow()
 
+            def __repr__(self):
+                return u"blé∫"
+
         self.MyWorkflow = MyWorkflow
         self.MyWorkflowObject = MyWorkflowObject
 

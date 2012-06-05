@@ -560,7 +560,11 @@ class Workflow(object):
             Any passed when calling the transition
         """
         logger = logging.getLogger('xworkflows.transitions')
-        logger.info(u'%r performed transition %s.%s (%s -> %s)', instance,
+        try:
+            instance_repr = unicode(repr(instance), 'utf8', 'ignore')
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            instance_repr = u'<bad repr>'
+        logger.info(u'%s performed transition %s.%s (%s -> %s)', instance_repr,
             self.__class__.__name__, transition.name, from_state.name,
             transition.target.name)
 
