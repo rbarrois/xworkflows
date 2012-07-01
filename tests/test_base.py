@@ -37,8 +37,10 @@ class StateListTestCase(unittest.TestCase):
     def test_contains(self):
         self.assertIn(self.foo, self.sl)
         self.assertIn(self.bar, self.sl)
+        self.assertIn('foo', self.sl)
 
         self.assertNotIn(self.bar2, self.sl)
+        self.assertNotIn('bar2', self.sl)
 
     def test_list_methods(self):
         self.assertTrue(self.sl)
