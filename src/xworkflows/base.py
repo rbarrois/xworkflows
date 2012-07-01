@@ -158,13 +158,13 @@ def _setup_states(state_definitions, prev=()):
         if len(state_def) != 2:
             raise TypeError("The 'state' attribute of a workflow should be "
                 "a two-tuple of strings; got %r instead." % (state_def,))
-        else:
-            name, title = state_def
-            state = State(name, title)
-        if state in states:
+        name, title = state_def
+        state = State(name, title)
+        if any(st.name == name for st in states):
             # Replacing an existing state
-            states.remove(state)
-        states.append(state)
+            states = [state if st.name == name else st for st in states]
+        else:
+            states.append(state)
     return StateList(states)
 
 
@@ -192,12 +192,9 @@ def _setup_transitions(tdef, states, prev=()):
             raise TypeError("Elements of the 'transition' attribute of a "
                 "workflow should be three-tuples; got %r instead." % (transition,))
 
-        at = None
-        for i, prev_tr in enumerate(trs):
-            if tr.name == prev_tr.name:
-                at = i
-        if at is not None:
-            trs[at] = tr
+        if any(prev_tr.name == tr.name for prev_tr in trs):
+            # Replacing an existing state
+            trs = [tr if prev_tr.name == tr.name else prev_tr for prev_tr in trs]
         else:
             trs.append(tr)
     return TransitionList(trs)

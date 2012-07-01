@@ -57,6 +57,46 @@ class WorkflowDeclarationTestCase(unittest.TestCase):
 
         self.assertExpected(MySubWorkflow, initial_state='bar')
 
+    def test_subclassing_alt(self):
+        class MyWorkflow(base.Workflow):
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
+            transitions = (
+                ('foobar', 'foo', 'bar'),
+                ('gobaz', ('foo', 'bar'), 'baz'),
+                ('bazbar', 'baz', 'bar'),
+            )
+            initial_state = 'foo'
+
+        self.assertExpected(MyWorkflow)
+
+        class MySubWorkflow(MyWorkflow):
+            initial_state = 'bar'
+            states = (
+                ('bar', "BARBAR"),
+                ('blah', 'Blah'),
+            )
+            transitions = (
+                ('gobaz', ('foo', 'bar', 'blah'), 'baz'),
+                ('blahblah', ('blah',), 'blah'),
+            )
+
+        self.assertEqual(4, len(MySubWorkflow.states))
+        self.assertEqual([st.name for st in MySubWorkflow.states],
+            ['foo', 'bar', 'baz', 'blah'])
+        self.assertEqual('bar', MySubWorkflow.initial_state.name)
+        self.assertEqual(MySubWorkflow.states.bar, MySubWorkflow.initial_state)
+        self.assertEqual('BARBAR', MySubWorkflow.states.bar.title)
+        self.assertEqual('Blah', MySubWorkflow.states.blah.title)
+
+        self.assertEqual(4, len(MySubWorkflow.transitions))
+        self.assertEqual([tr.name for tr in MySubWorkflow.transitions],
+            ['foobar', 'gobaz', 'bazbar', 'blahblah'])
+        self.assertEqual(3, len(MySubWorkflow.transitions.gobaz.source))
+
     def test_invalid_definitions(self):
         def create_invalid_workflow_1():
             class MyWorkflow(base.Workflow):
