@@ -214,14 +214,14 @@ class ImplementationWrapper(object):
         transition (Transition): the transition to perform
         workflow (Workflow): the workflow to which this is related.
 
-        check (callable): optional function to call along with state checks to
-            determine whether the transition is available.
-        before (callable): optional callable to call *before* performing the
-            transition.
+        check (callable list): optional functions to call along with state
+            checks to determine whether the transition is available.
+        before (callable list): optional callables to call *before* performing
+            the transition.
         implementation (callable): the code to invoke between 'before' and the
             state update.
-        after (callable): optional callable to call *after* changing the state
-            and logging the transition.
+        after (callable list): optional callables to call *after* changing the
+            state and logging the transition.
     """
 
     def __init__(self, instance, field_name, transition, workflow,
@@ -231,10 +231,10 @@ class ImplementationWrapper(object):
         self.transition = transition
         self.workflow = workflow
 
-        self.check = check
-        self.before = before
+        self.check = check or []
+        self.before = before or []
         self.implementation = implementation
-        self.after = after
+        self.after = after or []
 
         self.__doc__ = implementation.__doc__
 
@@ -246,15 +246,15 @@ class ImplementationWrapper(object):
                 "Transition '%s' isn't available from state '%s'." %
                 (self.transition.name, current_state.name))
 
-        if self.check is not None:
-            if not self.check(self.instance):
+        for _priority, check in reversed(sorted(self.check)):
+            if not check(self.instance):
                 raise ForbiddenTransition(
                     "Transition '%s' was forbidden by "
                     "custom pre-transition check." % self.transition.name)
 
     def _pre_transition(self, *args, **kwargs):
-        if self.before is not None:
-            self.before(self.instance, *args, **kwargs)
+        for _priority, before in reversed(sorted(self.before)):
+            before(self.instance, *args, **kwargs)
 
     def _during_transition(self, *args, **kwargs):
         return self.implementation(self.instance, *args, **kwargs)
@@ -265,8 +265,8 @@ class ImplementationWrapper(object):
 
     def _post_transition(self, result, *args, **kwargs):
         """Performs post-transition actions."""
-        if self.after is not None:
-            self.after(self.instance, result, *args, **kwargs)
+        for _priority, after in reversed(sorted(self.after)):
+            after(self.instance, result, *args, **kwargs)
 
     def __call__(self, *args, **kwargs):
         """Run the transition, with all checks."""
@@ -312,25 +312,40 @@ class ImplementationProperty(object):
         transition (Transition): the transition to perform
         workflow (Workflow): the workflow to which this is related.
 
-        check (callable): optional function to call along with state checks to
-            determine whether the transition is available.
-        before (callable): optional callable to call *before* performing the
-            transition.
+        check (callable list): optional functions to call along with state
+            checks to determine whether the transition is available.
+        before (callable list): optional callables to call *before* performing
+            the transition.
         implementation (callable): the code to invoke between 'before' and the
             state update.
-        after (callable): optional callable to call *after* changing the state
-            and logging the transition.
+        after (callable list): optional callables to call *after* changing the
+            state and logging the transition.
     """
     def __init__(self, field_name, transition, workflow, implementation,
             check=None, before=None, after=None):
         self.field_name = field_name
         self.transition = transition
         self.workflow = workflow
-        self.check = check
-        self.before = before
+        self.check = []
+        self.before = []
         self.implementation = implementation
-        self.after = after
+        self.after = []
         self.__doc__ = implementation.__doc__
+
+        if check:
+            self.add_hook('check', check)
+        if before:
+            self.add_hook('before', before)
+        if after:
+            self.add_hook('after', after)
+
+    def add_hook(self, kind, hook, priority=0):
+        if kind == 'check':
+            self.check.append((priority, hook))
+        elif kind == 'before':
+            self.before.append((priority, hook))
+        elif kind == 'after':
+            self.after.append((priority, hook))
 
     def __get__(self, instance, owner):
         if instance is None:
@@ -384,6 +399,68 @@ def transition(trname='', field='', check=None, before=None, after=None):
             "@transition(['transition_name'], **kwargs)")
     return TransitionWrapper(trname, field=field,
         check=check, before=before, after=after)
+
+
+def _make_hook_dict(fun):
+    if not hasattr(fun, 'xworkflows_hook'):
+        xworkflows_hook = {
+            'before': {},
+            'after': {},
+            'check': {},
+        }
+    return fun.xworkflows_hook
+
+
+class _TransitionHookDeclaration(object):
+    """Base class for decorators declaring methods as transition hooks.
+    """
+    def __init__(self, trname, priority=0, field=''):
+        self.trname = trname
+        self.priority = priority
+        self.field = field
+
+    @property
+    def identifier(self):
+        return (self.field, self.trname)
+
+    def __call__(self, func):
+        hook_dict = _make_hook_dict(fun)
+        hooks = hook_dict[self.hook_name].setdefault(self.identifier, [])
+        hooks.append(self.priority)
+        return func
+
+
+class before_transition(_TransitionHookDeclaration):
+    """Decorates a method that should be called before a given transition.
+
+    Example:
+        >>> @before_transition('foobar')
+        ... def blah(self):
+        ...   pass
+    """
+    hook_name = 'before'
+
+
+class after_transition(_TransitionHookDeclaration):
+    """Decorates a method that should be called after a given transition.
+
+    Example:
+        >>> @after_transition('foobar')
+        ... def blah(self):
+        ...   pass
+    """
+    hook_name = 'after'
+
+
+class transition_check(_TransitionHookDeclaration):
+    """Decorates a method that should be called after a given transition.
+
+    Example:
+        >>> @transition_check('foobar')
+        ... def blah(self):
+        ...   pass
+    """
+    hook_name = 'check'
 
 
 def noop(instance, *args, **kwargs):
@@ -462,6 +539,25 @@ class ImplementationList(object):
             if transition.name not in self.implementations:
                 self.add_implem(transition, transition.name, noop)
 
+    def register_hooks(self, attrs):
+        for attr in attrs.values():
+            if callable(attr) and hasattr(attr, 'xworkflows_hook'):
+                self.register_hook(attr)
+
+    def register_hook(self, func):
+        """Looks at an object method and registers it for relevent transitions."""
+        for hook_kind, hooks in func.xworkflows_hook.items():
+            for identifier, priorities in hooks.items():
+                field, trname = identifier
+                if field and field != self.state_field:
+                    # Hook for another field
+                    continue
+                if trname not in self.workflow.transitions:
+                    # Hook for another transition
+                    continue
+                implem = self.implementations[trname]
+                implem.add_hook(hook_kind, func, priority)
+
     def _may_override(self, implem, other):
         """Checks whether an ImplementationProperty may override an attribute."""
         if isinstance(other, ImplementationProperty):
@@ -500,6 +596,7 @@ class ImplementationList(object):
         self.collect(attrs)
         if add_missing:
             self.add_missing_implementations()
+        self.register_hooks(attrs)
         self.fill_attrs(attrs)
 
     def __repr__(self):
