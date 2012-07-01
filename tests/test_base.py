@@ -133,7 +133,7 @@ class ImplementationPropertyTestCase(unittest.TestCase):
         self.foobar = base.Transition('foobar', self.foo, self.bar)
 
     def test_creation(self):
-        def blah(obj):
+        def blah(obj):  # pragma: no cover
             """doc for blah"""
             pass
 
@@ -147,7 +147,7 @@ class ImplementationPropertyTestCase(unittest.TestCase):
         self.assertEqual('doc for blah', implem.__doc__)
 
     def test_using(self):
-        def blah(obj):
+        def blah(obj):  # pragma: no cover
             pass
 
         class MyClass(object):
@@ -157,13 +157,10 @@ class ImplementationPropertyTestCase(unittest.TestCase):
             field_name='my_state', transition=self.foobar, workflow=None,
             implementation=blah)
 
-
         MyClass.foobar = implem
-
         self.assertEqual(implem, MyClass.foobar)
 
         o = MyClass()
-
         self.assertRaises(TypeError, getattr, o, 'foobar')
 
 
@@ -199,7 +196,5 @@ class TransitionHookDeclarationTestCase(unittest.TestCase):
         self.assertEqual(('st', ('foo', 'bar')), decl.identifier)
 
 
-
-
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     unittest.main()

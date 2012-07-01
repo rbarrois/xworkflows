@@ -210,7 +210,7 @@ class WorkflowEnabledTestCase(unittest.TestCase):
             initial_state = 'foo'
 
             @base.transition('foobar')
-            def blah(self):
+            def blah(self):  # pragma: no cover
                 pass
 
         def create_invalid_workflow_enabled():
@@ -235,14 +235,14 @@ class WorkflowEnabledTestCase(unittest.TestCase):
             )
             initial_state = 'foo'
 
-            def foobar(self):
+            def foobar(self):  # pragma: no cover
                 pass
 
         class MyWorkflowObject(base.WorkflowEnabled):
             wf = MyWorkflow()
 
             @base.transition('foobar')
-            def blah(self):
+            def blah(self):  # pragma: no cover
                 pass
 
         self.assertFalse(hasattr(MyWorkflowObject, 'foobar'))
@@ -261,7 +261,7 @@ class WorkflowEnabledTestCase(unittest.TestCase):
             )
             initial_state = 'foo'
 
-            def foobar(self):
+            def foobar(self):  # pragma: no cover
                 pass
 
         def create_invalid_workflow_enabled():
@@ -269,7 +269,7 @@ class WorkflowEnabledTestCase(unittest.TestCase):
                 wf = MyWorkflow()
 
                 @base.transition('gobaz')
-                def foobar(self):
+                def foobar(self):  # pragma: no cover
                     pass
 
         self.assertRaises(ValueError, create_invalid_workflow_enabled)
@@ -288,7 +288,7 @@ class WorkflowEnabledTestCase(unittest.TestCase):
             )
             initial_state = 'foo'
 
-            def foobar(self):
+            def foobar(self):  # pragma: no cover
                 pass
 
         def create_invalid_workflow_enabled():
@@ -296,7 +296,7 @@ class WorkflowEnabledTestCase(unittest.TestCase):
                 wf = MyWorkflow()
 
                 @base.transition('blah')
-                def foobar(self):
+                def foobar(self):  # pragma: no cover
                     pass
 
         self.assertRaises(ValueError, create_invalid_workflow_enabled)
@@ -315,7 +315,7 @@ class WorkflowEnabledTestCase(unittest.TestCase):
             )
             initial_state = 'foo'
 
-            def foobar(self):
+            def foobar(self):  # pragma: no cover
                 pass
 
         def create_invalid_workflow_enabled():
@@ -511,11 +511,11 @@ class TransitionRunningTestCase(unittest.TestCase):
                 state2 = MyAltWorkflow()
 
                 @base.transition('foobar', field='state2')
-                def foobar2(self):
+                def foobar2(self):  # pragma: no cover
                     pass
 
                 @base.transition('gobaz', field='state2')
-                def gobaz2(self):
+                def gobaz2(self):  # pragma: no cover
                     pass
 
         self.assertRaises(ValueError, create_other_invalid_workflow_object)
@@ -541,15 +541,15 @@ class TransitionRunningTestCase(unittest.TestCase):
             state2 = MyAltWorkflow()
 
             @base.transition('foobar', field='state2')
-            def foobar2(self):
+            def foobar2(self):  # pragma: no cover
                 pass
 
             @base.transition('gobaz', field='state2')
-            def gobaz2(self):
+            def gobaz2(self):  # pragma: no cover
                 pass
 
             @base.transition('bazbar', field='state2')
-            def bazbar2(self):
+            def bazbar2(self):  # pragma: no cover
                 pass
 
         obj = MyWorkflowObject()
@@ -581,7 +581,7 @@ class CustomImplementationTestCase(unittest.TestCase):
             )
             initial_state = 'foo'
 
-            def foobar(self, res):
+            def foobar(self, res):  # pragma: no cover
                 return res
 
         self.MyWorkflow = MyWorkflow
@@ -632,7 +632,7 @@ class CustomImplementationTestCase(unittest.TestCase):
                 return False
 
             @base.transition(check=check_foobar)
-            def foobar(self):
+            def foobar(self):  # pragma: no cover
                 pass
 
             @base.transition()
@@ -664,7 +664,7 @@ class CustomImplementationTestCase(unittest.TestCase):
                 return False
 
             @base.transition(check=check_barbaz)
-            def barbaz(self):
+            def barbaz(self):  # pragma: no cover
                 pass
 
         obj = MyWorkflowObject()
@@ -872,5 +872,5 @@ class ExtendedTransitionImplementationTestCase(unittest.TestCase):
         self.assertEqual(42, obj.blah)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     unittest.main()
