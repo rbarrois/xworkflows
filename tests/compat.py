@@ -2,7 +2,7 @@
 
 import sys
 
-if sys.version_info.major <= 2 and sys.version_info.minor < 7:  # pragma: no cover
-    import unittest2 as unittest                                # pragma: no cover
-else:                                                           # pragma: no cover
+if sys.version_info[0] <= 2 and sys.version_info[1] < 7:  # pragma: no cover
+    import unittest2 as unittest
+else:  # pragma: no cover
     import unittest
