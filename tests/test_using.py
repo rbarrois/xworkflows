@@ -286,8 +286,6 @@ class WorkflowEnabledTestCase(unittest.TestCase):
 
         self.assertRaises(ValueError, create_invalid_workflow_enabled)
 
-
-
     def test_dual_workflows_conflict(self):
 
         def create_invalid_workflow_enabled():
@@ -322,6 +320,52 @@ class WorkflowEnabledTestCase(unittest.TestCase):
 
         self.assertEqual(self.MyWorkflow.initial_state, obj.state1)
         self.assertEqual(MyAltWorkflow.initial_state, obj.state2)
+
+    def test_inheritance(self):
+        class MyObject(base.WorkflowEnabled):
+            state = self.MyWorkflow()
+
+        class MySubObject(MyObject):
+            @base.transition()
+            def foobar(self):
+                return 42
+
+        obj = MySubObject()
+        self.assertTrue(hasattr(MySubObject, '_workflows'))
+        self.assertIn('state', MySubObject._workflows)
+        self.assertEqual(self.MyWorkflow.states.foo, obj.state)
+        self.assertEqual(42, obj.foobar())
+        self.assertEqual(self.MyWorkflow.states.bar, obj.state)
+        obj.gobaz()
+        self.assertEqual(self.MyWorkflow.states.baz, obj.state)
+
+    def test_inheritance_override_workflwo(self):
+        class MyAltWorkflow(base.Workflow):
+            states = (
+                ('fo', "Foo"),
+                ('br', "Bar"),
+                ('bz', "Baz"),
+            )
+            transitions = (
+                ('altfoobar', 'fo', 'br'),
+                ('altgobaz', ('fo', 'br'), 'bz'),
+                ('altbazbar', 'bz', 'br'),
+            )
+            initial_state = 'fo'
+
+        class MyObject(base.WorkflowEnabled):
+            state = self.MyWorkflow()
+
+        class MySubObject(MyObject):
+            state = MyAltWorkflow()
+
+        self.assertTrue(hasattr(MySubObject, '_workflows'))
+        self.assertIn('state', MySubObject._workflows)
+        self.assertEqual(MyAltWorkflow,
+            MySubObject._workflows['state'].workflow.__class__)
+        obj = MySubObject()
+        self.assertEqual(MyAltWorkflow.states.fo, obj.state)
+        self.assertFalse(hasattr(obj, 'gobar'))
 
 
 class TransitionRunningTestCase(unittest.TestCase):
@@ -394,8 +438,6 @@ class TransitionRunningTestCase(unittest.TestCase):
 
         obj = MyWorkflowObject()
 
-        # TODO: give the same name to transitions from MyWorkflow and
-        # MyAltWorkflow and use decorators to rename them
         self.assertEqual(self.MyWorkflow.states.foo, obj.state1)
         self.assertEqual(MyAltWorkflow.states.foo, obj.state2)
 

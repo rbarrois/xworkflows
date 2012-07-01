@@ -688,7 +688,12 @@ class WorkflowEnabledMeta(type):
         return workflows
 
     def __new__(mcs, name, bases, attrs):
-        workflows = mcs._find_workflows(attrs)
+        workflows = {}
+        for base in bases:
+            if hasattr(base, '_workflows'):
+                workflows.update(base._workflows)
+
+        workflows.update(mcs._find_workflows(attrs))
         for field_name, state_field in workflows.items():
             mcs._add_workflow(field_name, state_field, attrs)
 
