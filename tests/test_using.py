@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import unittest2
+from .compat import unittest
 
 from xworkflows import base
 
 
-class WorkflowDeclarationTestCase(unittest2.TestCase):
+class WorkflowDeclarationTestCase(unittest.TestCase):
 
     def assertExpected(self, workflow, initial_state='foo'):
         self.assertEqual(3, len(workflow.states))
@@ -106,7 +106,7 @@ class WorkflowDeclarationTestCase(unittest2.TestCase):
         self.assertRaises(TypeError, create_invalid_workflow_4)
 
 
-class WorkflowEnabledTestCase(unittest2.TestCase):
+class WorkflowEnabledTestCase(unittest.TestCase):
     def setUp(self):
         class MyWorkflow(base.Workflow):
             states = (
@@ -324,7 +324,7 @@ class WorkflowEnabledTestCase(unittest2.TestCase):
         self.assertEqual(MyAltWorkflow.initial_state, obj.state2)
 
 
-class TransitionRunningTestCase(unittest2.TestCase):
+class TransitionRunningTestCase(unittest.TestCase):
 
     def setUp(self):
         class MyWorkflow(base.Workflow):
@@ -483,7 +483,7 @@ class TransitionRunningTestCase(unittest2.TestCase):
         self.assertEqual(MyAltWorkflow.states.baz2, obj.state2)
 
 
-class CustomImplementationTestCase(unittest2.TestCase):
+class CustomImplementationTestCase(unittest.TestCase):
 
     def setUp(self):
         class MyWorkflow(base.Workflow):
@@ -606,7 +606,7 @@ class CustomImplementationTestCase(unittest2.TestCase):
         self.assertFalse(obj.barbaz.is_available())
 
 
-class ExtendedTransitionImplementationTestCase(unittest2.TestCase):
+class ExtendedTransitionImplementationTestCase(unittest.TestCase):
     """Tests extending TransitionImplementation with extra arguments."""
 
     def setUp(self):
@@ -664,4 +664,4 @@ class ExtendedTransitionImplementationTestCase(unittest2.TestCase):
 
 
 if __name__ == '__main__':
-    unittest2.main()
+    unittest.main()

@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import unittest2
+from .compat import unittest
 
 from xworkflows import base
 
 
-class StateTestCase(unittest2.TestCase):
+class StateTestCase(unittest.TestCase):
 
     def test_definition(self):
         self.assertRaises(ValueError, base.State, 'a--b', 'A--B')
@@ -20,7 +20,7 @@ class StateTestCase(unittest2.TestCase):
         self.assertNotIn('Foo', repr(a))
 
 
-class StateListTestCase(unittest2.TestCase):
+class StateListTestCase(unittest.TestCase):
 
     def setUp(self):
         self.foo = base.State('foo', 'Foo')
@@ -47,7 +47,7 @@ class StateListTestCase(unittest2.TestCase):
         self.assertEqual(2, len(self.sl))
 
 
-class TransitionListTestCase(unittest2.TestCase):
+class TransitionListTestCase(unittest.TestCase):
 
     def setUp(self):
         self.foo = base.State('foo', 'Foo')
@@ -85,7 +85,7 @@ class TransitionListTestCase(unittest2.TestCase):
         self.assertEqual([], list(self.tl.available_from(self.baz)))
 
 
-class StateWrapperTestCase(unittest2.TestCase):
+class StateWrapperTestCase(unittest.TestCase):
 
     def setUp(self):
         class MyWorkflow(base.Workflow):
@@ -122,7 +122,7 @@ class StateWrapperTestCase(unittest2.TestCase):
         self.assertEqual(self.foo.title, self.sf.title)
 
 
-class ImplementationPropertyTestCase(unittest2.TestCase):
+class ImplementationPropertyTestCase(unittest.TestCase):
 
     def setUp(self):
         self.foo = base.State('foo', 'Foo')
@@ -165,7 +165,7 @@ class ImplementationPropertyTestCase(unittest2.TestCase):
         self.assertRaises(TypeError, getattr, o, 'foobar')
 
 
-class TransitionWrapperTestCase(unittest2.TestCase):
+class TransitionWrapperTestCase(unittest.TestCase):
 
     def setUp(self):
         self.wrapper = base.TransitionWrapper('foobar')
@@ -175,4 +175,4 @@ class TransitionWrapperTestCase(unittest2.TestCase):
 
 
 if __name__ == '__main__':
-    unittest2.main()
+    unittest.main()
