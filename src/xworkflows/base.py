@@ -408,7 +408,7 @@ def transition(trname='', field='', check=None, before=None, after=None):
 
 def _make_hook_dict(fun):
     if not hasattr(fun, 'xworkflows_hook'):
-        xworkflows_hook = {
+        fun.xworkflows_hook = {
             'before': {},
             'after': {},
             'check': {},
@@ -418,18 +418,32 @@ def _make_hook_dict(fun):
 
 class _TransitionHookDeclaration(object):
     """Base class for decorators declaring methods as transition hooks.
+
+    Args:
+        *trnames (str tuple): name of the transitions to bind to; use '*' for 'all
+            transitions'
+        priority (int): priority of the hook, defaults to 0
+        field (str): name of the field to which the transition relates
+
+    Usage:
+        >>> @_TransitionHookDeclaration('foo', 'bar', priority=4)
+        ... def my_hook(self):
+        ...   pass
     """
-    def __init__(self, trname, priority=0, field=''):
-        self.trname = trname
-        self.priority = priority
-        self.field = field
+
+    def __init__(self, *trnames, **kwargs):
+        if not trnames:
+            trnames = ('*',)
+        self.trnames = trnames
+        self.priority = kwargs.get('priority', 0)
+        self.field = kwargs.get('field', '')
 
     @property
     def identifier(self):
-        return (self.field, self.trname)
+        return (self.field, self.trnames)
 
     def __call__(self, func):
-        hook_dict = _make_hook_dict(fun)
+        hook_dict = _make_hook_dict(func)
         hooks = hook_dict[self.hook_name].setdefault(self.identifier, [])
         hooks.append(self.priority)
         return func
@@ -549,19 +563,22 @@ class ImplementationList(object):
             if callable(attr) and hasattr(attr, 'xworkflows_hook'):
                 self.register_hook(attr)
 
+    def identifier_match(self, field_name, transitions, trname):
+        """Whether a hook identifier matches a transition name."""
+        if field_name and field_name != self.state_field:
+            return False
+        return '*' in transitions or trname in transitions
+
     def register_hook(self, func):
         """Looks at an object method and registers it for relevent transitions."""
         for hook_kind, hooks in func.xworkflows_hook.items():
             for identifier, priorities in hooks.items():
-                field, trname = identifier
-                if field and field != self.state_field:
-                    # Hook for another field
-                    continue
-                if trname not in self.workflow.transitions:
-                    # Hook for another transition
-                    continue
-                implem = self.implementations[trname]
-                implem.add_hook(hook_kind, func, priority)
+                field, transitions = identifier
+                for transition in self.workflow.transitions:
+                    if self.identifier_match(field, transitions, transition.name):
+                        for priority in priorities:
+                            implem = self.implementations[transition.name]
+                            implem.add_hook(hook_kind, func, priority)
 
     def _may_override(self, implem, other):
         """Checks whether an ImplementationProperty may override an attribute."""

@@ -176,5 +176,30 @@ class TransitionWrapperTestCase(unittest.TestCase):
         self.assertIn('foobar', repr(self.wrapper))
 
 
+class TransitionHookDeclarationTestCase(unittest.TestCase):
+    def test_simple_definition(self):
+        decl = base._TransitionHookDeclaration('foo', 'bar')
+        self.assertEqual(0, decl.priority)
+        self.assertEqual('', decl.field)
+        self.assertEqual(('foo', 'bar'), decl.trnames)
+        self.assertEqual(('', ('foo', 'bar')), decl.identifier)
+
+    def test_definition_no_transition_name(self):
+        decl = base._TransitionHookDeclaration()
+        self.assertEqual(0, decl.priority)
+        self.assertEqual('', decl.field)
+        self.assertEqual(('*',), decl.trnames)
+        self.assertEqual(('', ('*',)), decl.identifier)
+
+    def test_full_definition(self):
+        decl = base._TransitionHookDeclaration('foo', 'bar', priority=3, field='st')
+        self.assertEqual(3, decl.priority)
+        self.assertEqual('st', decl.field)
+        self.assertEqual(('foo', 'bar'), decl.trnames)
+        self.assertEqual(('st', ('foo', 'bar')), decl.identifier)
+
+
+
+
 if __name__ == '__main__':
     unittest.main()

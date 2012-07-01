@@ -688,6 +688,133 @@ class CustomImplementationTestCase(unittest.TestCase):
         self.assertFalse(obj.barbaz.is_available())
 
 
+class TransitionHookTestCase(unittest.TestCase):
+    def setUp(self):
+        class MyWorkflow(base.Workflow):
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
+            transitions = (
+                ('foobar', 'foo', 'bar'),
+                ('gobaz', ('foo', 'bar'), 'baz'),
+                ('bazbar', 'baz', 'bar'),
+            )
+            initial_state = 'foo'
+
+        self.MyWorkflow = MyWorkflow
+
+        class MyWorkflowObject(base.WorkflowEnabled):
+            state = self.MyWorkflow()
+
+            def __init__(self, state=None):
+                self.hooks = []
+                if state:
+                    self.state = state
+
+            def seen_hook(self, hook_id):
+                self.hooks.append(hook_id)
+
+            @base.before_transition('foobar')
+            def hook1(self, *args, **kwargs):
+                self.seen_hook(1)
+
+            @base.after_transition('foobar', 'gobaz')
+            def hook2(self, *args, **kwargs):
+                self.seen_hook(2)
+
+            @base.before_transition('foobar', priority=2)
+            @base.after_transition('gobaz', priority=3)
+            def hook3(self, *args, **kwargs):
+                self.seen_hook(3)
+                return True
+
+            @base.transition_check()
+            def hook4(self, *args, **kwargs):
+                self.seen_hook(4)
+                return True
+
+            @base.after_transition('gobaz')
+            @base.after_transition('bazbar')
+            @base.after_transition('gobaz', priority=10)
+            @base.transition_check('foobar', priority=1)
+            def hook5(self, *args, **kwargs):
+                self.seen_hook(5)
+                return True
+
+        self.MyWorkflowObject = MyWorkflowObject
+
+    def test_declarations(self):
+        obj = self.MyWorkflowObject()
+        self.assertItemsEqual(obj.foobar.check, [
+            (0, obj.hook4.__func__),
+            (1, obj.hook5.__func__),
+        ])
+        self.assertItemsEqual(obj.foobar.before, [
+            (0, obj.hook1.__func__),
+            (2, obj.hook3.__func__),
+        ])
+        self.assertItemsEqual(obj.foobar.after, [
+            (0, obj.hook2.__func__),
+        ])
+
+        self.assertItemsEqual(obj.gobaz.check, [
+            (0, obj.hook4.__func__),
+        ])
+        self.assertItemsEqual(obj.gobaz.before, [
+        ])
+        self.assertItemsEqual(obj.gobaz.after, [
+            (0, obj.hook2.__func__),
+            (3, obj.hook3.__func__),
+            (0, obj.hook5.__func__),
+            (10, obj.hook5.__func__),
+        ])
+
+        self.assertItemsEqual(obj.bazbar.check, [
+            (0, obj.hook4.__func__),
+        ])
+        self.assertItemsEqual(obj.bazbar.after, [
+            (0, obj.hook5.__func__),
+        ])
+
+    def test_checks(self):
+        obj = self.MyWorkflowObject()
+        self.assertTrue(obj.foobar.is_available())
+        self.assertEqual([5, 4], obj.hooks)
+
+        obj = self.MyWorkflowObject()
+        self.assertTrue(obj.gobaz.is_available())
+        self.assertEqual([4], obj.hooks)
+
+        obj = self.MyWorkflowObject(state=self.MyWorkflow.states.baz)
+        self.assertTrue(obj.bazbar.is_available())
+        self.assertEqual([4], obj.hooks)
+
+    def test_transitions_a(self):
+        obj = self.MyWorkflowObject()
+        obj.foobar()
+        # check: 5, 4
+        # before: 3, 1
+        # after: 2
+        self.assertEqual([5, 4, 3, 1, 2], obj.hooks)
+
+    def test_transitions_b(self):
+        obj = self.MyWorkflowObject()
+        obj.gobaz()
+        # check: 4
+        # before: -
+        # after: 5, 3, 5, 2
+        self.assertEqual([4, 5, 3, 5, 2], obj.hooks)
+
+    def test_transitions_c(self):
+        obj = self.MyWorkflowObject(state=self.MyWorkflow.states.baz)
+        obj.bazbar()
+        # check: 4
+        # before: -
+        # after: 5
+        self.assertEqual([4, 5], obj.hooks)
+
 class ExtendedTransitionImplementationTestCase(unittest.TestCase):
     """Tests extending TransitionImplementation with extra arguments."""
 
