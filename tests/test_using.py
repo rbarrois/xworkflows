@@ -735,7 +735,7 @@ class TransitionHookTestCase(unittest.TestCase):
                 self.seen_hook(4)
                 return True
 
-            @base.after_transition('gobaz')
+            @base.after_transition('gobaz', priority=1)
             @base.after_transition('bazbar')
             @base.after_transition('gobaz', priority=10)
             @base.transition_check('foobar', priority=1)
@@ -767,7 +767,7 @@ class TransitionHookTestCase(unittest.TestCase):
         self.assertItemsEqual(obj.gobaz.after, [
             (0, obj.hook2.__func__),
             (3, obj.hook3.__func__),
-            (0, obj.hook5.__func__),
+            (1, obj.hook5.__func__),
             (10, obj.hook5.__func__),
         ])
 
