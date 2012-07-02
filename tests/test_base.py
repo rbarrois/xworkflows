@@ -175,25 +175,42 @@ class TransitionWrapperTestCase(unittest.TestCase):
 
 class TransitionHookDeclarationTestCase(unittest.TestCase):
     def test_simple_definition(self):
-        decl = base._TransitionHookDeclaration('foo', 'bar')
+        decl = base.before_transition('foo', 'bar')
         self.assertEqual(0, decl.priority)
         self.assertEqual('', decl.field)
-        self.assertEqual(('foo', 'bar'), decl.trnames)
-        self.assertEqual(('', ('foo', 'bar')), decl.identifier)
+        self.assertEqual(('foo', 'bar'), decl.names)
 
     def test_definition_no_transition_name(self):
-        decl = base._TransitionHookDeclaration()
+        decl = base.before_transition()
         self.assertEqual(0, decl.priority)
         self.assertEqual('', decl.field)
-        self.assertEqual(('*',), decl.trnames)
-        self.assertEqual(('', ('*',)), decl.identifier)
+        self.assertEqual(('*',), decl.names)
 
     def test_full_definition(self):
-        decl = base._TransitionHookDeclaration('foo', 'bar', priority=3, field='st')
+        decl = base.before_transition('foo', 'bar', priority=3, field='st')
         self.assertEqual(3, decl.priority)
         self.assertEqual('st', decl.field)
-        self.assertEqual(('foo', 'bar'), decl.trnames)
-        self.assertEqual(('st', ('foo', 'bar')), decl.identifier)
+        self.assertEqual(('foo', 'bar'), decl.names)
+
+
+class StateHookDeclarationTestCase(unittest.TestCase):
+    def test_simple_definition(self):
+        decl = base.on_enter_state('foo', 'bar')
+        self.assertEqual(0, decl.priority)
+        self.assertEqual('', decl.field)
+        self.assertEqual(('foo', 'bar'), decl.names)
+
+    def test_definition_no_transition_name(self):
+        decl = base.on_enter_state()
+        self.assertEqual(0, decl.priority)
+        self.assertEqual('', decl.field)
+        self.assertEqual(('*',), decl.names)
+
+    def test_full_definition(self):
+        decl = base.on_enter_state('foo', 'bar', priority=3, field='st')
+        self.assertEqual(3, decl.priority)
+        self.assertEqual('st', decl.field)
+        self.assertEqual(('foo', 'bar'), decl.names)
 
 
 if __name__ == '__main__':  # pragma: no cover

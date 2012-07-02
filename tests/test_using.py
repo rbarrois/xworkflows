@@ -749,38 +749,47 @@ class TransitionHookTestCase(unittest.TestCase):
 
         self.MyWorkflowObject = MyWorkflowObject
 
+    def assert_same_hooks(self, actual, expected, kind):
+        """Tests that the 'actual' dict contains expected hooks.
+
+        Matching is performed on (priority, callable, kind) pairs.
+        """
+        self.assertItemsEqual(
+            [(priority, fun, kind) for (priority, fun) in expected],
+            [(hook.priority, hook.function, hook.kind) for hook in actual])
+
     def test_declarations(self):
         obj = self.MyWorkflowObject()
-        self.assertItemsEqual(obj.foobar.check, [
+        self.assert_same_hooks(obj.foobar.hooks['check'], [
             (0, obj.hook4.__func__),
             (1, obj.hook5.__func__),
-        ])
-        self.assertItemsEqual(obj.foobar.before, [
+        ], 'check')
+        self.assert_same_hooks(obj.foobar.hooks['before'], [
             (0, obj.hook1.__func__),
             (2, obj.hook3.__func__),
-        ])
-        self.assertItemsEqual(obj.foobar.after, [
+        ], 'before')
+        self.assert_same_hooks(obj.foobar.hooks['after'], [
             (0, obj.hook2.__func__),
-        ])
+        ], 'after')
 
-        self.assertItemsEqual(obj.gobaz.check, [
+        self.assert_same_hooks(obj.gobaz.hooks['check'], [
             (0, obj.hook4.__func__),
-        ])
-        self.assertItemsEqual(obj.gobaz.before, [
-        ])
-        self.assertItemsEqual(obj.gobaz.after, [
+        ], 'check')
+        self.assert_same_hooks(obj.gobaz.hooks.get('before', []), [
+        ], 'before')
+        self.assert_same_hooks(obj.gobaz.hooks['after'], [
             (0, obj.hook2.__func__),
             (3, obj.hook3.__func__),
             (1, obj.hook5.__func__),
             (10, obj.hook5.__func__),
-        ])
+        ], 'after')
 
-        self.assertItemsEqual(obj.bazbar.check, [
+        self.assert_same_hooks(obj.bazbar.hooks['check'], [
             (0, obj.hook4.__func__),
-        ])
-        self.assertItemsEqual(obj.bazbar.after, [
+        ], 'check')
+        self.assert_same_hooks(obj.bazbar.hooks['after'], [
             (0, obj.hook5.__func__),
-        ])
+        ], 'after')
 
     def test_checks(self):
         obj = self.MyWorkflowObject()
@@ -818,6 +827,112 @@ class TransitionHookTestCase(unittest.TestCase):
         # before: -
         # after: 5
         self.assertEqual([4, 5], obj.hooks)
+
+
+class StateHookTestCase(unittest.TestCase):
+    def setUp(self):
+        class MyWorkflow(base.Workflow):
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
+            transitions = (
+                ('foobar', 'foo', 'bar'),
+                ('gobaz', ('foo', 'bar'), 'baz'),
+                ('bazbar', 'baz', 'bar'),
+            )
+            initial_state = 'foo'
+
+        self.MyWorkflow = MyWorkflow
+
+        class MyWorkflowObject(base.WorkflowEnabled):
+            state = self.MyWorkflow()
+
+            def __init__(self, state=None):
+                self.hooks = []
+                if state:
+                    self.state = state
+
+            def seen_hook(self, hook_id):
+                self.hooks.append(hook_id)
+
+            @base.on_leave_state('foo')
+            def hook1(self, *args, **kwargs):
+                self.seen_hook(1)
+
+            @base.on_enter_state('bar', 'baz')
+            def hook2(self, *args, **kwargs):
+                self.seen_hook(2)
+
+            @base.on_enter_state('bar', priority=2)
+            @base.on_leave_state('bar', priority=3)
+            def hook3(self, *args, **kwargs):
+                self.seen_hook(3)
+
+            @base.on_leave_state()
+            def hook4(self, *args, **kwargs):
+                self.seen_hook(4)
+
+        self.MyWorkflowObject = MyWorkflowObject
+
+    def assert_same_hooks(self, actual, expected, kind):
+        """Tests that the 'actual' dict contains expected hooks.
+
+        Matching is performed on (priority, callable, kind) pairs.
+        """
+        self.assertItemsEqual(
+            [(priority, fun, kind) for (priority, fun) in expected],
+            [(hook.priority, hook.function, hook.kind) for hook in actual])
+
+    def test_declarations(self):
+        obj = self.MyWorkflowObject()
+        self.assert_same_hooks(obj.foobar.hooks['on_leave'], [
+            (0, obj.hook1.__func__),
+            (0, obj.hook4.__func__),
+        ], 'on_leave')
+        self.assert_same_hooks(obj.foobar.hooks['on_enter'], [
+            (0, obj.hook2.__func__),
+            (2, obj.hook3.__func__),
+        ], 'on_enter')
+
+        self.assert_same_hooks(obj.gobaz.hooks['on_leave'], [
+            (0, obj.hook1.__func__),
+            (3, obj.hook3.__func__),
+            (0, obj.hook4.__func__),
+        ], 'on_leave')
+        self.assert_same_hooks(obj.gobaz.hooks['on_enter'], [
+            (0, obj.hook2.__func__),
+        ], 'on_enter')
+
+        self.assert_same_hooks(obj.bazbar.hooks['on_leave'], [
+            (0, obj.hook4.__func__),
+        ], 'on_leave')
+        self.assert_same_hooks(obj.bazbar.hooks['on_enter'], [
+            (0, obj.hook2.__func__),
+            (2, obj.hook3.__func__),
+        ], 'on_enter')
+
+    def test_transitions_a(self):
+        obj = self.MyWorkflowObject()
+        obj.foobar()
+        # on_leave: 1, 4
+        # on_enter: 3, 2
+        self.assertEqual([1, 4, 3, 2], obj.hooks)
+
+    def test_transitions_b(self):
+        obj = self.MyWorkflowObject()
+        obj.gobaz()
+        # on_leave: 1, 4
+        # on_enter: 2
+        self.assertEqual([1, 4, 2], obj.hooks)
+
+    def test_transitions_c(self):
+        obj = self.MyWorkflowObject(state=self.MyWorkflow.states.baz)
+        obj.bazbar()
+        # on_leave: 4
+        # on_enter: 3, 2
+        self.assertEqual([4, 3, 2], obj.hooks)
 
 class ExtendedTransitionImplementationTestCase(unittest.TestCase):
     """Tests extending TransitionImplementation with extra arguments."""
