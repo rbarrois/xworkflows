@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from .compat import unittest
+from .compat import unittest, is_python3
 
 from xworkflows import base
 
@@ -428,7 +428,11 @@ class TransitionRunningTestCase(unittest.TestCase):
             state = MyWorkflow()
 
             def __repr__(self):
-                return u"blé∫"
+                r = "blé∫"
+                if is_python3:
+                    return r
+                else:
+                    return unicode(r)
 
         self.MyWorkflow = MyWorkflow
         self.MyWorkflowObject = MyWorkflowObject

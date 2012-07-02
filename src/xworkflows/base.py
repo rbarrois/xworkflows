@@ -7,6 +7,7 @@ import logging
 import re
 import warnings
 
+from .compat import is_callable, is_string, u
 
 class WorkflowError(Exception):
     """Base class for errors from the xworkflows module."""
@@ -183,7 +184,7 @@ def _setup_transitions(tdef, states, prev=()):
     for transition in tdef:
         if len(transition) == 3:
             (name, source, target) = transition
-            if isinstance(source, basestring) or isinstance(source, State):
+            if is_string(source) or isinstance(source, State):
                 source = [source]
             source = [states[src] for src in source]
             target = states[target]
@@ -392,7 +393,7 @@ class TransitionWrapper(object):
 
 def transition(trname='', field='', check=None, before=None, after=None):
     """Decorator to declare a function as a transition implementation."""
-    if callable(trname):
+    if is_callable(trname):
         raise ValueError("The @transition decorator should be called as "
             "@transition(['transition_name'], **kwargs)")
     if check or before or after:
@@ -560,7 +561,7 @@ class ImplementationList(object):
 
     def register_hooks(self, attrs):
         for attr in attrs.values():
-            if callable(attr) and hasattr(attr, 'xworkflows_hook'):
+            if is_callable(attr) and hasattr(attr, 'xworkflows_hook'):
                 self.register_hook(attr)
 
     def identifier_match(self, field_name, transitions, trname):
@@ -682,8 +683,8 @@ class Workflow(object):
         try:
             instance_repr = unicode(repr(instance), 'utf8', 'ignore')
         except (UnicodeEncodeError, UnicodeDecodeError):
-            instance_repr = u'<bad repr>'
-        logger.info(u'%s performed transition %s.%s (%s -> %s)', instance_repr,
+            instance_repr = u("<bad repr>")
+        logger.info(u("%s performed transition %s.%s (%s -> %s)"), instance_repr,
             self.__class__.__name__, transition.name, from_state.name,
             transition.target.name)
 
