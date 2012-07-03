@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from .compat import unittest, is_python3
+import warnings
+
+from .compat import is_python3, unittest, u
 
 from xworkflows import base
 
@@ -428,11 +430,7 @@ class TransitionRunningTestCase(unittest.TestCase):
             state = MyWorkflow()
 
             def __repr__(self):
-                r = "blé∫"
-                if is_python3:
-                    return r
-                else:
-                    return unicode(r)
+                r = u("blé∫")
 
         self.MyWorkflow = MyWorkflow
         self.MyWorkflowObject = MyWorkflowObject
@@ -614,6 +612,15 @@ class CustomImplementationTestCase(unittest.TestCase):
         self.assertEqual('blahblah', obj.gobaz('blah'))
         self.assertEqual(self.MyWorkflow.states.baz, obj.state)
 
+    def test_instance_badly_defined(self):
+        """Test misuse of the @transition decorator."""
+        def misuse_decorator():
+            @base.transition
+            def my_transition():  # pragma: no cover
+                pass
+
+        self.assertRaises(ValueError, misuse_decorator)
+
     def test_instance_override(self):
         class MyWorkflowObject(base.WorkflowEnabled):
             state = self.MyWorkflow()
@@ -627,6 +634,22 @@ class CustomImplementationTestCase(unittest.TestCase):
         self.assertEqual(self.MyWorkflow.states.foo, obj.state)
         self.assertEqual('blahblah', obj.foobar('blah'))
         self.assertEqual(self.MyWorkflow.states.bar, obj.state)
+
+    def test_transition_conflict(self):
+        """Test conflict of two implementation for the same transition."""
+        def declare_bad_workflow():
+            class MyWorkflowObject(base.WorkflowEnabled):
+                state = self.MyWorkflow()
+
+                @base.transition('foobar')
+                def foobar(self):  # pragma: no cover
+                    pass
+
+                @base.transition('foobar')
+                def altfoobar(self):  # pragma: no cover
+                    pass
+
+        self.assertRaises(ValueError, declare_bad_workflow)
 
     def test_abort_transition(self):
         class MyWorkflowObject(base.WorkflowEnabled):
@@ -690,6 +713,47 @@ class CustomImplementationTestCase(unittest.TestCase):
 
         self.assertRaises(base.ForbiddenTransition, obj.barbaz)
         self.assertFalse(obj.barbaz.is_available())
+
+
+class DeprecatedHookTestCase(unittest.TestCase):
+    def test_check_hook(self):
+        """Test that using @transition(check=X) raises a warning."""
+        with warnings.catch_warnings(record=True) as w:
+            __warningregistry__.clear()
+            warnings.simplefilter('always')
+
+            @base.transition(check=base.noop)
+            def foobar(*args, **kwargs):  # pragma: no cover
+                pass
+
+            self.assertEqual(1, len(w))
+            self.assertIn('deprecated', str(w[0].message))
+
+    def test_before_hook(self):
+        """Test that using @transition(before=X) raises a warning."""
+        with warnings.catch_warnings(record=True) as w:
+            __warningregistry__.clear()
+            warnings.simplefilter('always')
+
+            @base.transition(before=base.noop)
+            def foobar(*args, **kwargs):  # pragma: no cover
+                pass
+
+            self.assertEqual(1, len(w))
+            self.assertIn('deprecated', str(w[0].message))
+
+    def test_after_hook(self):
+        """Test that using @transition(after=X) raises a warning."""
+        with warnings.catch_warnings(record=True) as w:
+            __warningregistry__.clear()
+            warnings.simplefilter('always')
+
+            @base.transition(after=base.noop)
+            def foobar(*args, **kwargs):  # pragma: no cover
+                pass
+
+            self.assertEqual(1, len(w))
+            self.assertIn('deprecated', str(w[0].message))
 
 
 class TransitionHookTestCase(unittest.TestCase):
@@ -827,6 +891,112 @@ class TransitionHookTestCase(unittest.TestCase):
         # before: -
         # after: 5
         self.assertEqual([4, 5], obj.hooks)
+
+    def test_oldstyle_check(self):
+        class MyWorkflowObject(base.WorkflowEnabled):
+            state = self.MyWorkflow()
+
+            def __init__(self):
+                self.hooks = []
+
+            def seen_hook(self, hook_id):
+                self.hooks.append(hook_id)
+
+            def hook(self, *args, **kwargs):
+                self.seen_hook(1)
+                return True
+
+            @base.transition(check=hook)
+            def foobar(self, *args, **kwargs):
+                self.seen_hook(2)
+
+        obj = MyWorkflowObject()
+        obj.foobar.is_available()
+        self.assertEqual([1], obj.hooks)
+        obj.foobar()
+        self.assertEqual([1, 1, 2], obj.hooks)
+
+    def test_oldstyle_before(self):
+        class MyWorkflowObject(base.WorkflowEnabled):
+            state = self.MyWorkflow()
+
+            def __init__(self):
+                self.hooks = []
+
+            def seen_hook(self, hook_id):
+                self.hooks.append(hook_id)
+
+            def hook(self, *args, **kwargs):
+                self.seen_hook(1)
+
+            @base.transition(before=hook)
+            def foobar(self, *args, **kwargs):
+                self.seen_hook(2)
+
+        obj = MyWorkflowObject()
+        obj.foobar()
+        self.assertEqual([1, 2], obj.hooks)
+
+    def test_oldstyle_after(self):
+        class MyWorkflowObject(base.WorkflowEnabled):
+            state = self.MyWorkflow()
+
+            def __init__(self):
+                self.hooks = []
+
+            def seen_hook(self, hook_id):
+                self.hooks.append(hook_id)
+
+            def hook(self, *args, **kwargs):
+                self.seen_hook(1)
+
+            @base.transition(after=hook)
+            def foobar(self, *args, **kwargs):
+                self.seen_hook(2)
+
+        obj = MyWorkflowObject()
+        obj.foobar()
+        self.assertEqual([2, 1], obj.hooks)
+
+    def test_mixed_fields(self):
+        """Test hooks in a dual workflow setup."""
+        class MyWorkflowObject(base.WorkflowEnabled):
+            state1 = self.MyWorkflow()
+            state2 = self.MyWorkflow()
+
+            def __init__(self):
+                self.hooks = []
+
+            def seen_hook(self, hook_id):
+                self.hooks.append(hook_id)
+
+            @base.before_transition()
+            def hook1(self, *args, **kwargs):
+                self.seen_hook(1)
+
+            @base.before_transition('foobar', field='state1')
+            def hook2(self, *args, **kwargs):
+                self.seen_hook(2)
+
+            @base.transition('foobar', field='state2')
+            def foobar2(self):
+                pass
+
+            @base.transition('gobaz', field='state2')
+            def gobaz2(self):  # pragma: no cover
+                pass
+
+            @base.transition('bazbar', field='state2')
+            def bazbar2(self):  # pragma: no cover
+                pass
+
+        obj = MyWorkflowObject()
+        obj.foobar()
+        self.assertEqual([1, 2], obj.hooks)
+
+        obj = MyWorkflowObject()
+        obj.foobar2()
+        self.assertEqual([1], obj.hooks)
 
 
 class StateHookTestCase(unittest.TestCase):

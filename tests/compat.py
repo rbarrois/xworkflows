@@ -8,3 +8,10 @@ else:  # pragma: no cover
     import unittest
 
 is_python3 = (sys.version_info[0] >= 3)
+
+if is_python3:  # pragma: no cover
+    def u(txt):
+        return txt
+else:  # pragma: no cover
+    def u(txt):
+        return unicode(txt)

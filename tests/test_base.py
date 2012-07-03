@@ -107,11 +107,14 @@ class StateWrapperTestCase(unittest.TestCase):
         self.bar = base.State('bar', 'Bar')
         self.wf = MyWorkflow
         self.sf = base.StateWrapper(self.foo, self.wf)
+        self.sf2 = base.StateWrapper(self.foo, self.wf)
 
     def test_comparison(self):
+        self.assertEqual(self.sf, self.sf2)
         self.assertEqual(self.sf, self.foo)
         self.assertEqual(self.foo, self.sf)
         self.assertNotEqual(self.sf, self.bar)
+        self.assertNotEqual(self.sf, 0)
         self.assertNotEqual(self.bar, self.sf)
         self.assertEqual(self.sf, 'foo')
         self.assertEqual('foo', self.sf)
@@ -122,6 +125,18 @@ class StateWrapperTestCase(unittest.TestCase):
         self.assertFalse(hasattr(self.sf, 'foo'))
         self.assertEqual(self.foo.name, self.sf.name)
         self.assertEqual(self.foo.title, self.sf.title)
+
+        class BadSubclass(base.StateWrapper):
+            def __init__(self, *args, **kwargs):
+                self.x = self.state  # Not yet defined!
+
+        self.assertRaises(AttributeError, BadSubclass)
+
+    def test_representation(self):
+        self.assertEqual(str(self.foo), str(self.sf))
+        self.assertIn(repr(self.foo), repr(self.sf))
+        self.assertEqual(self.foo.title, unicode(self.sf))
+        self.assertEqual(hash(self.foo.name), hash(self.sf))
 
 
 class ImplementationPropertyTestCase(unittest.TestCase):
@@ -173,6 +188,82 @@ class TransitionWrapperTestCase(unittest.TestCase):
         self.assertIn('foobar', repr(self.wrapper))
 
 
+class HookTestCase(unittest.TestCase):
+    def test_validation(self):
+        def make_invalid_hook():
+            return base.Hook('invalid_kind', base.noop)
+
+        self.assertRaises(AssertionError, make_invalid_hook)
+
+    def test_no_names(self):
+        hook = base.Hook(base.HOOK_BEFORE, base.noop)
+        self.assertEqual(base.HOOK_BEFORE, hook.kind)
+        self.assertEqual(0, hook.priority)
+        self.assertEqual(base.noop, hook.function)
+        self.assertEqual(('*',), hook.names)
+
+    def test_no_names_but_priority(self):
+        hook = base.Hook(base.HOOK_BEFORE, base.noop, priority=42)
+        self.assertEqual(base.HOOK_BEFORE, hook.kind)
+        self.assertEqual(42, hook.priority)
+        self.assertEqual(base.noop, hook.function)
+        self.assertEqual(('*',), hook.names)
+
+    def test_some_names_no_priority(self):
+        hook = base.Hook(base.HOOK_BEFORE, base.noop, 'foo', 'bar')
+        self.assertEqual(base.HOOK_BEFORE, hook.kind)
+        self.assertEqual(0, hook.priority)
+        self.assertEqual(base.noop, hook.function)
+        self.assertEqual(('foo', 'bar'), hook.names)
+
+    def test_some_names_and_priority(self):
+        hook = base.Hook(base.HOOK_BEFORE, base.noop, 'foo', 'bar', priority=42)
+        self.assertEqual(base.HOOK_BEFORE, hook.kind)
+        self.assertEqual(42, hook.priority)
+        self.assertEqual(base.noop, hook.function)
+        self.assertEqual(('foo', 'bar'), hook.names)
+
+    def test_equality(self):
+        hook1 = base.Hook(base.HOOK_BEFORE, base.noop)
+        hook2 = base.Hook(base.HOOK_BEFORE, base.noop)
+        hook3 = base.Hook(base.HOOK_AFTER, base.noop)
+        def alt_noop(*args, **kwargs):  # pragma: no cover
+            pass
+        hook4 = base.Hook(base.HOOK_BEFORE, alt_noop)
+        hook5 = base.Hook(base.HOOK_BEFORE, base.noop, 'foo')
+        hook6 = base.Hook(base.HOOK_BEFORE, base.noop, priority=42)
+
+        self.assertEqual(hook1, hook2)
+        self.assertNotEqual(hook1, hook3)
+        self.assertNotEqual(hook1, hook4)
+        self.assertNotEqual(hook1, hook5)
+        self.assertNotEqual(hook1, hook6)
+
+    def test_invalid_equality_checks(self):
+        hook = base.Hook(base.HOOK_BEFORE, base.noop)
+        self.assertTrue(hook != base.noop)
+        self.assertFalse(hook == base.noop)
+
+    def test_comparison(self):
+        hook1 = base.Hook(base.HOOK_BEFORE, base.noop)
+        hook2 = base.Hook(base.HOOK_AFTER, base.noop)
+        hook3 = base.Hook(base.HOOK_BEFORE, base.noop, priority=2)
+        def alt_noop(*args, **kwargs):  # pragma: no cover
+            pass
+        hook4 = base.Hook(base.HOOK_BEFORE, alt_noop)
+
+        self.assertNotEqual(0, cmp(hook1, hook2))
+        # Hook 3 has higher priority, comes first
+        self.assertLess(hook3, hook1)
+        # Hook 4 has lower name, comes first
+        self.assertLess(hook4, hook1)
+
+    def test_repr(self):
+        hook = base.Hook(base.HOOK_BEFORE, base.noop)
+        self.assertIn(repr(base.noop), repr(hook))
+        self.assertIn(base.HOOK_BEFORE, repr(hook))
+
+
 class TransitionHookDeclarationTestCase(unittest.TestCase):
     def test_simple_definition(self):
         decl = base.before_transition('foo', 'bar')
@@ -211,6 +302,30 @@ class StateHookDeclarationTestCase(unittest.TestCase):
         self.assertEqual(3, decl.priority)
         self.assertEqual('st', decl.field)
         self.assertEqual(('foo', 'bar'), decl.names)
+
+
+class ImplementationWrapperTestCase(unittest.TestCase):
+    def setUp(self):
+        class Dummy(object):
+            state1 = 'foo'
+            state2 = 'bar'
+
+        self.dummy = Dummy()
+
+    def test_current_state(self):
+        wrapper = base.ImplementationWrapper(self.dummy, 'state1', None, None,
+            base.noop)
+        self.assertEqual('foo', wrapper.current_state)
+        self.assertEqual(base.noop.__doc__, wrapper.__doc__)
+
+    def test_repr(self):
+        wrapper = base.ImplementationWrapper(self.dummy, 'state1',
+            base.Transition('foobar', [base.State('foo', 'Foo')],
+                base.State('bar', 'Bar')), None,
+            base.noop)
+        self.assertIn('foobar', repr(wrapper))
+        self.assertIn('state1', repr(wrapper))
+        self.assertIn(repr(base.noop), repr(wrapper))
 
 
 if __name__ == '__main__':  # pragma: no cover

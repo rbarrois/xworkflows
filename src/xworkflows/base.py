@@ -270,7 +270,13 @@ class Hook(object):
         return (self.priority == other.priority
             and self.function == other.function
             and self.kind == other.kind
+            and self.names == other.names
         )
+
+    def __ne__(self, other):
+        if not isinstance(other, Hook):
+            return NotImplemented
+        return not (self == other)
 
     def __cmp__(self, other):
         """Compare hooks of the same kind."""
@@ -284,8 +290,8 @@ class Hook(object):
         )
 
     def __repr__(self):
-        return '<%s: %s %r at %d>' % (
-            self.__class__.__name__, self.kind, self.function, self.priority)
+        return '<%s: %s %r>' % (
+            self.__class__.__name__, self.kind, self.function)
 
 
 class ImplementationWrapper(object):
@@ -387,7 +393,7 @@ class ImplementationWrapper(object):
         return True
 
     def __repr__(self):
-        return "<%s for '%s' on '%s': %s>" % (self.__class__.__name__,
+        return "<%s for %r on %r: %r>" % (self.__class__.__name__,
             self.transition.name, self.field_name, self.implementation)
 
 
@@ -411,20 +417,13 @@ class ImplementationProperty(object):
             state and logging the transition.
     """
     def __init__(self, field_name, transition, workflow, implementation,
-            check=None, before=None, after=None):
+            hooks=None):
         self.field_name = field_name
         self.transition = transition
         self.workflow = workflow
-        self.hooks = {}
+        self.hooks = hooks or {}
         self.implementation = implementation
         self.__doc__ = implementation.__doc__
-
-        if check:
-            self.add_hook(Hook(HOOK_CHECK, check))
-        if before:
-            self.add_hook(Hook(HOOK_BEFORE, before))
-        if after:
-            self.add_hook(Hook(HOOK_AFTER, after))
 
     def add_hook(self, hook):
         self.hooks.setdefault(hook.kind, []).append(hook)
@@ -637,6 +636,7 @@ class ImplementationList(object):
             **kwargs)
         self.implementations[transition.name] = implem
         self.transitions_at[transition.name] = attribute
+        return implem
 
     def should_collect(self, value):
         """Decide whether a given value should be collected."""
@@ -663,8 +663,13 @@ class ImplementationList(object):
                         "%s for transition %s, which is already implemented "
                         "at %s." % (name, value, transition, other_implem_at))
 
-                self.add_implem(transition, name, value.func,
-                    check=value.check, before=value.before, after=value.after)
+                implem = self.add_implem(transition, name, value.func)
+                if value.check:
+                    implem.add_hook(Hook(HOOK_CHECK, value.check))
+                if value.before:
+                    implem.add_hook(Hook(HOOK_BEFORE, value.before))
+                if value.after:
+                    implem.add_hook(Hook(HOOK_AFTER, value.after))
 
     def add_missing_implementations(self):
         for transition in self.workflow.transitions:
@@ -726,9 +731,6 @@ class ImplementationList(object):
         self.add_missing_implementations()
         self.register_hooks(attrs)
         self.fill_attrs(attrs)
-
-    def __repr__(self):
-        return '<%s: %r>' % (self.__class__.__name__, self._implems.values())
 
 
 class WorkflowMeta(type):
