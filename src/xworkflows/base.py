@@ -209,22 +209,62 @@ HOOK_ON_LEAVE = 'on_leave'
 
 
 class Hook(object):
-    def __init__(self, kind, function, priority=0):
+    """A hook to run when a transition occurs.
+
+    Attributes:
+        kind (str): the kind of hook
+        priority (int): the priority of the hook (higher values run first)
+        function (callable): the actual function to call
+        names (str list): name of the transitions or states to which the hook
+            relates. The special value '*' means 'applies to all transitions/
+            states'.
+
+    Hooks are sortable by descending priority and ascending function name.
+
+    Hook kinds are as follow:
+        - HOOK_BEFORE: run before the related transitions
+        - HOOK_AFTER: run after the related transitions
+        - HOOK_CHECK: run as part of pre-transition checks (return value matters)
+        - HOOK_ON_ENTER: run just after a transition entering a related state
+        - HOOK_ON_LEAVE: run just before a transition leaving from a related state
+    """
+
+    def __init__(self, kind, function, *names, **kwargs):
         assert kind in (HOOK_BEFORE, HOOK_AFTER, HOOK_CHECK,
             HOOK_ON_ENTER, HOOK_ON_LEAVE)
 
         self.kind = kind
-        self.priority = priority
+        self.priority = kwargs.get('priority', 0)
         self.function = function
+        self.names = names or ('*',)
 
     def applies_to(self, transition, from_state=None):
-        """Whether this hook applies to the given transition."""
-        raise NotImplementedError()
+        """Whether this hook applies to the given transition/state.
+
+        Args:
+            transition (Transition): the transition to check
+            from_state (State or None): the state to check. If absent, the check
+                is 'might this hook apply to the related transition, given a
+                valid source state'.
+        """
+        if '*' in self.names:
+            return True
+        elif self.kind in (HOOK_BEFORE, HOOK_AFTER, HOOK_CHECK):
+            return transition.name in self.names
+        elif self.kind == HOOK_ON_ENTER:
+            return transition.target.name in self.names
+        elif from_state is None:
+            # Testing whether the hook may apply to at least one source of the
+            # transition
+            return any(src.name in self.names for src in transition.source)
+        else:
+            return from_state.name in self.names
 
     def __call__(self, *args, **kwargs):
         return self.function(*args, **kwargs)
 
     def __eq__(self, other):
+        """Equality is based on priority, function and kind."""
         if not isinstance(other, Hook):
             return NotImplemented
         return (self.priority == other.priority
@@ -233,6 +273,7 @@ class Hook(object):
         )
 
     def __cmp__(self, other):
+        """Compare hooks of the same kind."""
         if not isinstance(other, Hook):
             return NotImplemented
         if self.kind != other.kind:
@@ -247,37 +288,6 @@ class Hook(object):
             self.__class__.__name__, self.kind, self.function, self.priority)
 
 
-class TransitionHook(Hook):
-    def __init__(self, kind, func, *transition_names, **kwargs):
-        assert kind in (HOOK_BEFORE, HOOK_AFTER, HOOK_CHECK)
-        super(TransitionHook, self).__init__(kind, func, **kwargs)
-        self.transition_names = transition_names or ('*',)
-
-    def applies_to(self, transition, from_state=None):
-        return ('*' in self.transition_names
-            or transition.name in self.transition_names)
-
-
-class StateHook(Hook):
-    def __init__(self, kind, func, *state_names, **kwargs):
-        assert kind in (HOOK_ON_ENTER, HOOK_ON_LEAVE)
-        super(StateHook, self).__init__(kind, func, **kwargs)
-        self.state_names = state_names or ('*',)
-
-    def applies_to(self, transition, from_state=None):
-        if '*' in self.state_names:
-            return True
-        elif self.kind == HOOK_ON_ENTER:
-            return transition.target.name in self.state_names
-        elif from_state is None:
-            # Testing whether the hook may apply to at least one source of the
-            # transition
-            return any(source.name in self.state_names
-                for source in transition.source)
-        else:
-            return from_state in self.state_names
-
-
 class ImplementationWrapper(object):
     """Wraps a transition implementation.
 
@@ -290,14 +300,9 @@ class ImplementationWrapper(object):
         transition (Transition): the transition to perform
         workflow (Workflow): the workflow to which this is related.
 
-        check (callable list): optional functions to call along with state
-            checks to determine whether the transition is available.
-        before (callable list): optional callables to call *before* performing
-            the transition.
+        hooks (Hook list): optional hooks to call during the transition
         implementation (callable): the code to invoke between 'before' and the
             state update.
-        after (callable list): optional callables to call *after* changing the
-            state and logging the transition.
     """
 
     def __init__(self, instance, field_name, transition, workflow,
@@ -324,22 +329,20 @@ class ImplementationWrapper(object):
                 "Transition '%s' isn't available from state '%s'." %
                 (self.transition.name, current_state.name))
 
-        hooks = self.hooks.get(HOOK_CHECK, [])
-        for check in sorted(self._filter_hooks(hooks)):
+        for check in self._filter_hooks(HOOK_CHECK):
             if not check(self.instance):
                 raise ForbiddenTransition(
                     "Transition '%s' was forbidden by "
                     "custom pre-transition check." % self.transition.name)
 
-    def _filter_hooks(self, hooks):
+    def _filter_hooks(self, *hook_kinds):
         """Filter a list of hooks, keeping only applicable ones."""
-        for hook in hooks:
-            if hook.applies_to(self.transition, self.current_state):
-                yield hook
+        hooks = sum((self.hooks.get(kind, []) for kind in hook_kinds), [])
+        return sorted(hook for hook in hooks
+                      if hook.applies_to(self.transition, self.current_state))
 
     def _pre_transition(self, *args, **kwargs):
-        hooks = self.hooks.get(HOOK_BEFORE, []) + self.hooks.get(HOOK_ON_LEAVE, [])
-        for hook in sorted(self._filter_hooks(hooks)):
+        for hook in self._filter_hooks(HOOK_BEFORE, HOOK_ON_LEAVE):
             hook(self.instance, *args, **kwargs)
 
     def _during_transition(self, *args, **kwargs):
@@ -351,8 +354,7 @@ class ImplementationWrapper(object):
 
     def _post_transition(self, result, *args, **kwargs):
         """Performs post-transition actions."""
-        hooks = self.hooks.get(HOOK_AFTER, []) + self.hooks.get(HOOK_ON_ENTER, [])
-        for hook in sorted(self._filter_hooks(hooks)):
+        for hook in self._filter_hooks(HOOK_AFTER, HOOK_ON_ENTER):
             hook(self.instance, *args, **kwargs)
 
     def __call__(self, *args, **kwargs):
@@ -418,11 +420,11 @@ class ImplementationProperty(object):
         self.__doc__ = implementation.__doc__
 
         if check:
-            self.add_hook(TransitionHook(HOOK_CHECK, check))
+            self.add_hook(Hook(HOOK_CHECK, check))
         if before:
-            self.add_hook(TransitionHook(HOOK_BEFORE, before))
+            self.add_hook(Hook(HOOK_BEFORE, before))
         if after:
-            self.add_hook(TransitionHook(HOOK_AFTER, after))
+            self.add_hook(Hook(HOOK_AFTER, after))
 
     def add_hook(self, hook):
         self.hooks.setdefault(hook.kind, []).append(hook)
@@ -506,7 +508,7 @@ def _make_hook_dict(fun):
     return fun.xworkflows_hook
 
 
-class _BaseHookDeclaration(object):
+class _HookDeclaration(object):
     """Base class for decorators declaring methods as transition hooks.
 
     Args:
@@ -516,7 +518,7 @@ class _BaseHookDeclaration(object):
         field (str): name of the field to which the hooked transition relates
 
     Usage:
-        >>> @_BaseHookDeclaration('foo', 'bar', priority=4)
+        >>> @_HookDeclaration('foo', 'bar', priority=4)
         ... def my_hook(self):
         ...   pass
     """
@@ -529,7 +531,7 @@ class _BaseHookDeclaration(object):
         self.field = kwargs.get('field', '')
 
     def _as_hook(self, func):
-        raise NotImplementedError()
+        return Hook(self.hook_name, func, *self.names, priority=self.priority)
 
     def __call__(self, func):
         hook_dict = _make_hook_dict(func)
@@ -538,17 +540,7 @@ class _BaseHookDeclaration(object):
         return func
 
 
-class _TransitionHookDeclaration(_BaseHookDeclaration):
-    def __init__(self, *args, **kwargs):
-        assert self.hook_name in (HOOK_BEFORE, HOOK_AFTER, HOOK_CHECK)
-        super(_TransitionHookDeclaration, self).__init__(*args, **kwargs)
-
-    def _as_hook(self, func):
-        return TransitionHook(self.hook_name, func,
-            *self.names, priority=self.priority)
-
-
-class before_transition(_TransitionHookDeclaration):
+class before_transition(_HookDeclaration):
     """Decorates a method that should be called before a given transition.
 
     Example:
@@ -559,7 +551,7 @@ class before_transition(_TransitionHookDeclaration):
     hook_name = HOOK_BEFORE
 
 
-class after_transition(_TransitionHookDeclaration):
+class after_transition(_HookDeclaration):
     """Decorates a method that should be called after a given transition.
 
     Example:
@@ -570,7 +562,7 @@ class after_transition(_TransitionHookDeclaration):
     hook_name = HOOK_AFTER
 
 
-class transition_check(_TransitionHookDeclaration):
+class transition_check(_HookDeclaration):
     """Decorates a method that should be called after a given transition.
 
     Example:
@@ -581,23 +573,7 @@ class transition_check(_TransitionHookDeclaration):
     hook_name = HOOK_CHECK
 
 
-class _StateHookDeclaration(_BaseHookDeclaration):
-    """Decorates a method that should be used as a hook for a state.
-
-    Example:
-        >>> @on_enter_state('foo', 'bar')
-        ... def blah(self):
-        ...   pass
-    """
-    def __init__(self, *args, **kwargs):
-        assert self.hook_name in (HOOK_ON_ENTER, HOOK_ON_LEAVE)
-        super(_StateHookDeclaration, self).__init__(*args, **kwargs)
-
-    def _as_hook(self, func):
-        return StateHook(self.hook_name, func, *self.names, priority=self.priority)
-
-
-class on_enter_state(_StateHookDeclaration):
+class on_enter_state(_HookDeclaration):
     """Decorates a method that should be used as a hook for a state.
 
     Example:
@@ -608,7 +584,7 @@ class on_enter_state(_StateHookDeclaration):
     hook_name = HOOK_ON_ENTER
 
 
-class on_leave_state(_StateHookDeclaration):
+class on_leave_state(_HookDeclaration):
     """Decorates a method that should be used as a hook for a state.
 
     Example:
