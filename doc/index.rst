@@ -120,6 +120,20 @@ When calling the transition, the custom code is called before updating the state
     >>> obj.activated_by
     'blah'
 
+Hooks
+-----
+
+Other functions can be hooked onto transitions, through the :func:`~xworkflows.before_transition`,
+:func:`~xworkflows.after_transition`, :func:`~xworkflows.transition_check`,
+:func:`~xworkflows.on_enter_state` and :func:`~xworkflows.on_leave_state` decorators::
+
+    class MyObject(xworkflows.WorkflowEnabled):
+        state = MyWorkflow
+
+        @xworkflows.before_transition('foobar', 'gobaz')
+        def hook(self, *args, **kwargs):
+            pass
+
 Contents
 ========
 

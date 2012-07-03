@@ -199,13 +199,13 @@ Once decorated, any call to that method will perfom the following steps:
 
 #. Check that the current :class:`~base.State` of the object is a valid source for
    the target :class:`~base.Transition` (raises :exc:`InvalidTransitionError` otherwise);
-#. Checks that the optional :func:`~base.ImplementationWrapper.check` hook, if defined, returns ``True``
+#. Checks that all optional :func:`transition_check` hooks, if defined, returns ``True``
    (raises :exc:`ForbiddenTransition` otherwise);
-#. Run the optional :func:`~base.ImplementationWrapper.before` hook, if defined;
+#. Run optional :func:`~before_transition` and :func:`~on_leave_state` hooks
 #. Call the code of the function;
 #. Change the :class:`~base.State` of the object;
 #. Call the :func:`Workflow.log_transition` method of the related :class:`Workflow`;
-#. Run the optional :func:`~base.ImplementationWrapper.after` hook, if defined.
+#. Run the optional :func:`~after_transition` and :func:`~on_enter_state` hooks, if defined.
 
 
 Transitions for which no implementation was defined will have a basic :func:`~base.noop` implementation.
@@ -216,26 +216,121 @@ Controlling transitions
 
 According to the order above, preventing a :class:`~base.State` change can be done:
 
-- By returning ``False`` in a custom :func:`~base.ImplementationWrapper.check` hook;
-- By raising any exception in the custom :func:`~base.ImplementationWrapper.before` hook;
+- By returning ``False`` in a custom :func:`~transition_check` hook;
+- By raising any exception in a custom :func:`~before_transition` or :func:`~on_leave_state` hook;
 - By raising any exception in the actual implementation.
 
+Hooks
+"""""
 
 Additional control over the transition implementation can be obtained via hooks.
-Three hooks are available, and are bound to the implementation at the :func:`transition` level::
+5 kinds of hooks exist:
+
+- :func:`transition_check`: those hooks are called just after the :class:`~base.State` check, and should
+  return ``True`` if the transition can proceed. No argument is provided to the hook.
+
+- :func:`before_transition`: hooks to call just before running the actual implementation. They receive
+  the same ``*args`` and ``**kwargs`` as passed to the actual implementation (but can't modify them).
+
+- :func:`after_transition`: those hooks are called just after the :class:`~base.State` has been updated.
+  It receives:
+
+  - ``res``: the return value of the actual implementation;
+  - ``*args`` and ``**kwargs``: the arguments passed to the actual implementation
+
+- :func:`on_leave_state`: functions to call just before leaving a state, along with the
+  :func:`before_transition` hooks. They receive the same arguments as a ``before`` hook.
+
+- :func:`on_enter_state`: hooks to call just after entering a new state, along with :func:`after_transition` hooks. They receive the same arguments as a ``after`` hook.
+
+
+The hook decorators all accept the following arguments:
+
+- A list of :class:`~base.Transition` names (for transition-related hooks) or :class:`~base.State` names (for state-related hooks); if empty, the hook will apply to all transitions::
+
+    @xworkflows.before_transition()
+    @xworkflows.after_transition('foo', 'bar')
+    def hook(self, *args, **kwargs):
+        pass
+
+- As a keyword ``field=`` argument, the name of the field whose transitions the hook
+  applies to (when an instance uses more than one workflow)::
+
+    class MyObject(xworkflows.WorkflowEnabled):
+        state1 = SomeWorkflow()
+        state2 = AnotherWorkflow()
+
+        @xworkflows.after_transition(field='state2')
+        def hook(self, res, *args, **kwargs):
+            # Only called for transitions on state2.
+            pass
+
+- As a keyword ``priority=`` argument (default: 0), the priority of the hook; hooks are applied in
+  decreasing priority order::
+
+    class MyObject(xworkflows.WorkflowEnabled):
+        state = SomeWorkflow()
+
+        @xworkflows.before_transition('*', priority=-1)
+        def last_hook(self, *args, **kwargs):
+            # Will be called last
+            pass
+
+        @xworkflows.before_transition('foo', priority=10)
+        def first_hook(self, *args, **kwargs):
+            # Will be called first
+            pass
+
+
+Hook decorators can also be stacked, in order to express compless hooking systems::
+
+    @xworkflows.before_transition('foobar', priority=4)
+    @xworkflows.on_leave_state('baz')
+    def hook(self, *args, **kwargs):
+        pass
+
+
+Hook call order
+'''''''''''''''
+
+The order in which hooks are applied is computed based on the following rules:
+
+- Compute the list of hooks to apply
+    - When testing if a transition can be applied, use all :func:`transition_check` hooks
+    - Before performing a transition, use all :func:`before_transition` and :func:`on_leave_state` hooks
+    - After performing a transition, use all :func:`after_transition` and :func:`on_enter_state` hooks
+- Sort that list from higher to lower priority, and in alphabetical order if priority match
+
+In the following code snippet, the order is ``hook3, hook1, hook4, hook2``::
+
+    @xworkflows.before_transition()
+    def hook1(self):
+        pass
+
+    @xworkflows.before_transition(priority=-1)
+    def hook2(self):
+        pass
+
+    @xworkflows.before_transition(priority=10)
+    def hook3(self):
+        pass
+
+    @xworkflows.on_leave_state()
+    def hook4(self):
+        pass
+
+Old-style hooks
+'''''''''''''''
+
+Hooks can also be bound to the implementation at the :func:`transition` level::
 
     @xworkflows.transition(check=some_fun, before=other_fun, after=something_else)
     def accept(self):
         pass
 
-- ``check``: this function is called just after the :class:`~base.State` check, and should return ``True`` if the transition can proceed;
-- ``before``: this function is called just before running the actual implementation.
-  It receives the same ``*args`` and ``**kwargs`` as those passed to the actual implementation;
-- ``after``: this function is called just after the :class:`~base.State` has been updated.
-  Its arguments are:
-
-  - ``res``: the return value of the actual implementation;
-  - ``*args`` and ``**kwargs``: the arguments passed to the actual implementation.
+.. deprecated:: 0.4.0
+    Use :func:`before_transition`, :func:`after_transition` and :func:`transition_check`
+    instead; will be removed in 0.5.0.
 
 
 Checking transition availability
@@ -244,7 +339,7 @@ Checking transition availability
 
 Some programs may need to display *available* transitions, without calling them.
 Instead of checking manually the :class:`state <base.State>` of the object and calling
-the appropriate :func:`~base.ImplementationWrapper.check` method if defined, you should simply call ``myobj.some_transition.is_available()``:
+the appropriate :func:`transition_check` hooks if defined, you should simply call ``myobj.some_transition.is_available()``:
 
 .. sourcecode:: python
 
@@ -252,10 +347,10 @@ the appropriate :func:`~base.ImplementationWrapper.check` method if defined, you
         state = MyWorkflow
         x = 13
 
+        @transition_check('accept')
         def check(self):
             return self.x == 42
 
-        @transition(check=check)
         def accept(self):
             pass
 

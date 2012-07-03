@@ -1,9 +1,27 @@
 0.4.0 (current)
 ---------------
 
+*New:*
+
+    * Improve support for transition hooks, with the :meth:`xworkflows.before_transition`,
+      :meth:`xworkflows.after_transition`, :meth:`xworkflows.transition_check`, :meth:`xworkflows.on_enter_state` and
+      :meth:`xworkflows.on_leave_state` decorators.
+
 *Bugfix:*
 
-    * Fix support for inheritance of :class:`WorkflowEnabled` objects.
+    * Fix support for inheritance of :class:`xworkflows.WorkflowEnabled` objects.
+
+*Deprecated:*
+
+    * Use of the ``check=``, ``before=``, ``after=`` keyword arguments in the
+      ``@transition`` decorator is now deprecated; use ``@before_transition``,
+      ``@after_transition`` and ``@transition_check`` instead. Support for old
+      keyword arguments will be removed in 0.5.0.
+
+*Backward incompatible:*
+
+    * The :class:`~xworkflows.base.ImplementationWrapper` class no longer accepts the
+      ``check``, ``before``, ``after`` arguments (use ``hooks`` instead)
 
 0.3.2 (05/06/2012)
 ------------------
@@ -17,7 +35,7 @@
 
 *Bugfix:*
 
-    * Make the :attr:`~State.title` argument mandatory in :class:`State`
+    * Make the :attr:`~xworkflows.base.State.title` argument mandatory in :class:`~xworkflows.base.State`
       initialization
 
 0.3.0 (30/04/2012)
@@ -25,9 +43,9 @@
 
 *New:*
 
-    * Allow and document customization of the :class:`~base.ImplementationWrapper`
+    * Allow and document customization of the :class:`~xworkflows.base.ImplementationWrapper`
     * Add a method to check whether a transition is available from the current instance
-    * Cleanup :class:`~base.ImplementationList` and improve its documentation
+    * Cleanup :class:`~xworkflows.base.ImplementationList` and improve its documentation
 
 0.2.4 (23 04 2012)
 ------------------
@@ -36,7 +54,7 @@
 
     * Improve documentation
     * Add pre-transition ``check`` hook
-    * Remove alternate ``Workflow`` definition schemes.
+    * Remove alternate :class:`~xworkflows.Workflow` definition schemes.
     * Properly validate objects using two workflows with conflicting transitions.
 
 0.2.3 (15 04 2012)

@@ -13,6 +13,8 @@ This document presents the various classes and components of XWorkflows.
           Public API consists of the public methods and attributes of the following objects:
 
           - The :func:`transition` function;
+          - The :func:`before_transition`, :func:`after_transition`, :func:`transition_check`,
+            :func:`on_enter_state` and :func:`on_leave_state` decorators;
           - The :class:`Workflow` and :class:`WorkflowEnabled` classes;
           - The :exc:`WorkflowError`, :exc:`AbortTransition`, :exc:`InvalidTransitionError` and :exc:`ForbiddenTransition` exceptions.
 
@@ -114,7 +116,7 @@ The :class:`StateProperty` class
 
         The :class:`Workflow` to which the attribute is related
 
-    .. attribute:: state_field_name
+    .. attribute:: field_name
 
         The name of the attribute wrapped by this :class:`~base.StateProperty`.
 
@@ -361,14 +363,23 @@ methods that should be called when performing transitions.
 
       Should return ``True`` if the transition can proceed.
 
+      .. deprecated:: 0.4.0
+        Will be removed in 0.5.0; use :func:`transition_check` instead.
+
     :param callable before: An optional function to call after checks and before the actual
       implementation.
 
       Receives the same arguments as the transition implementation.
 
+      .. deprecated:: 0.4.0
+        Will be removed in 0.5.0; use :func:`before_transition` instead.
+
     :param callable after: An optional function to call *after* the transition was performed and logged.
 
       Receives the instance, the implementation return value and the implementation arguments.
+
+      .. deprecated:: 0.4.0
+        Will be removed in 0.5.0; use :func:`after_transition` instead.
 
 
 .. class:: base.TransitionWrapper
@@ -378,6 +389,218 @@ methods that should be called when performing transitions.
     .. attribute:: func
 
       The decorated function, wrapped with a few checks and calls.
+
+
+Hooks
+"""""
+
+Hooks are declared through a :class:`~base._HookDeclaration` decorator, which attaches
+a specific ``xworkflows_hook`` attribute to the decorated method.
+Methods with such attribute will be collected into :class:`~base.Hook` objects containing all useful fields.
+
+
+
+Registering hooks
+'''''''''''''''''
+
+
+.. function:: _make_hook_dict(function)
+
+    Ensures that the given ``function`` has a ``xworkflows_hook`` attributes, and returns it.
+
+    The ``xworkflows_hook`` is a dict mapping each hook kind to a list of ``(field, hook)`` pairs::
+
+        function.xworkflows_hook = {
+            HOOK_BEFORE: [('state', <Hook: ...>), ('', <Hook: ...>)],
+            HOOK_AFTER: [],
+            ...
+        }
+
+    .. note:: Although the ``xworkflows_hook`` is considered a private API, it may
+        become an official extension point in future releases.
+
+
+.. class:: base._HookDeclaration
+
+    Base class for hook declaration decorators.
+
+    It accepts an (optional) list of transition/state :attr:`names`, and :attr:`priority` / :attr:`field` as keyword arguments::
+
+        @_HookDeclaration('foo', 'bar')
+        @_HookDeclaration(priority=42)
+        @_HookDeclaration('foo', field='state1')
+        @_HookDeclaration(priority=42, field='state1')
+        def hook(self):
+            pass
+
+    .. attribute:: names
+
+        List of :class:`transition <base.Transition>` or :class:`state <base.State>` names
+        the hook applies to
+
+        :type: str list
+
+    .. attribute:: priority
+
+        The priority of the hook
+
+        :type: int
+
+    .. attribute:: field
+
+        The name of the :class:`StateWrapper` field whose transitions the hook applies to
+
+        :type: str
+
+
+    .. method:: _as_hook(self, func)
+
+        Create a :class:`Hook` for the given callable
+
+    .. method:: __call__(self, func)
+
+        Create a :class:`Hook` for the function, and store it in the function's ``xworkflows_hook`` attribute.
+
+
+.. function:: before_transition(*names, priority=0, field='')
+
+    .. **
+
+    Marks a method as a pre-transition hook.
+    The hook will be called just before changing a :class:`WorkflowEnabled` object state,
+    with the same ``*args`` and ``**kwargs`` as the actual implementation.
+
+
+.. function:: transition_check(*names, priority=0, field='')
+
+    .. **
+
+    Marks a method as a transition check hook.
+
+    The hook will be called when using :meth:`~base.ImplementationProperty.is_available`
+    and before running the implementation, without any args, and should return a boolean
+    indicating whether the transition may proceed.
+
+
+.. function:: after_transition(*names, priority=0, field='')
+
+    .. **
+
+    Marks a method as a post-transition hook
+
+    The hook will be called immediately after the state update, with:
+
+    - ``res``, return value of the actual implementation
+    - ``*args`` and ``**kwargs`` that were passed to the implementation
+
+.. function:: on_leave_state(*names, priority=0, field='')
+
+    .. **
+
+    Marks a method as a pre-transition hook to call when the object leaves one of
+    the given states.
+
+    The hook will be called with the same arguments as a :func:`before_transition` hook.
+
+
+.. function:: on_enter_state(*names, priority=0, field='')
+
+    .. **
+
+    Marks a method as a post-transition hook to call just after changing the
+    state to one of the given states.
+
+    The hook will be called with the same arguments as a :func:`after_transition` hook.
+
+
+Calling hooks
+'''''''''''''
+
+
+.. data:: HOOK_BEFORE
+
+        The kind of :func:`before_transition` hooks
+
+
+.. data:: HOOK_CHECK
+
+        The kind of :func:`transition_check` hooks
+
+
+.. data:: HOOK_AFTER
+
+        The kind of :func:`after_transition` hooks
+
+
+.. data:: HOOK_ON_ENTER
+
+        The kind of :func:`on_leave_state` hooks
+
+
+.. data:: HOOK_ON_LEAVE
+
+        The kind of :func:`on_enter_state` hooks
+
+
+.. class:: base.Hook
+
+    Describes a hook, including its :attr:`kind`, :attr:`priority` and the list of
+    transitions it applies to.
+
+    .. attribute:: kind
+
+        One of :data:`HOOK_BEFORE`, :data:`HOOK_AFTER`, :data:`HOOK_CHECK`, :data:`HOOK_ON_ENTER` or :data:`HOOK_ON_LEAVE`; the kind of hook.
+
+    .. attribute:: priority
+
+        The priority of the hook, as an integer defaulting to 0.
+        Hooks with higher priority will be executed first; hooks with the same priority
+        will be sorted according to the :attr:`function` name.
+
+        :type: int
+
+    .. attribute:: function
+
+        The actual hook function to call. Arguments passed to that function depend on
+        the hook's :attr:`kind`.
+
+        :type: callable
+
+    .. attribute:: names
+
+        Name of :class:`states <base.State>` or :class:`transitions <base.Transition>` this
+        hook applies to; will be ``('*',)`` if the hook applies to all states/transitions.
+
+        :type: str tuple
+
+    .. method:: applies_to(self, transition[, from_state=None])
+
+        Check whether the hook applies to the given :class:`~base.Transition` and optional
+        source :class:`~base.State`.
+
+        If ``from_state`` is ``None``, the test means "could the hook apply to the given
+        transition, in at least one source state".
+
+        If ``from_state`` is not ``None``, the test means "does the hook apply to the
+        given transition for this specific source state".
+
+        :returns: bool
+
+
+    .. method:: __call__(self, *args, **kwargs):
+
+        .. ** disable vim highlighting
+
+        Call the hook
+
+    .. method:: __eq__(self, other)
+    .. method:: __ne__(self, other)
+
+        Two hooks are "equal" if they wrap the same function, have the same kind, priority and names.
+
+    .. method:: __cmp__(self, other)
+
+        Hooks are ordered by descending priority and ascending decorated function name.
 
 
 Advanced customization
@@ -400,6 +623,10 @@ all transitions -- initially defined and automatically added -- are replaced wit
         - When called without an instance (``instance=None``), returns itself
         - When called with an instance, this will instantiate a :class:`~base.ImplementationWrapper`
           attached to that instance and return it.
+
+    .. method:: add_hook(self, hook)
+
+        Register a new :class:`~base.Hook`.
 
 
 .. class:: base.ImplementationWrapper
@@ -438,40 +665,17 @@ all transitions -- initially defined and automatically added -- are replaced wit
         :type: callable
 
 
-    .. attribute:: check
+    .. attribute:: hooks
 
-        An optional method to call before calling :attr:`implementation`.
-        This method will be called just after :class:`~base.State` checks, and should return ``True`` if the transition is allowed to proceed.
+        All hooks that may be applied when performing the related transition.
 
-        Will be called with the about-to-update instance.
+        :type: :class:`~python.dict` mapping a hook kind to a list of :class:`~base.Hook`
 
-        :type: callable or :obj:`None`
+    .. attribute:: current_state
 
+        Actually a property, retrieve the current state from the instance.
 
-    .. attribute:: before
-
-        An optional method to call after all checks and just before the :attr:`implementation`.
-
-        Will be called with:
-
-        - The about-to-update instance
-        - The ``*args`` used when calling the transition
-        - The ``**kwargs`` used when calling the transition
-
-        :type: callable or :obj:`None`
-
-
-    .. attribute:: after
-
-        An optional method to call after :attr:`implementation`, the :class:`~base.State` change and the :meth:`Workflow.log_transition` call.
-
-        Will be called with:
-
-        - The updated instance
-        - The return value of :attr:`implementation`
-        - The ``*args`` used when calling the transition
-        - The ``**kwargs`` used when calling the transition
-
+        :type: :class:`~base.StateWrapper`
 
     .. method:: __call__
 
@@ -487,7 +691,7 @@ all transitions -- initially defined and automatically added -- are replaced wit
 
         - it makes sure that the current state of the instance is compatible with
           the transition;
-        - it calls the :attr:`check` attribute, if defined.
+        - it calls the :func:`transition_check` :attr:`hooks`, if defined.
 
         :rtype: :class:`bool`
 
@@ -569,6 +773,18 @@ Building the list of :class:`~base.ImplementationProperty` for a given :class:`W
         :class:`~base.Transition` that weren't collected in the :func:`collect` step.
 
 
+    .. method:: register_hooks(self, attrs)
+
+        Walks the attribute definitions and collects hooks from those with a
+        ``xworkflows_hook`` attribute (through :meth:`register_function_hooks`)
+
+
+    .. method:: register_function_hooks(self, func)
+
+        Retrieves hook definitions from the given function, and registers them
+        on the related :class:`~base.ImplementationProperty`.
+
+
     .. method:: _may_override(self, implem, other)
 
         Checks whether the :attr:`implem` :class:`~base.ImplementationProperty` is a
@@ -587,18 +803,17 @@ Building the list of :class:`~base.ImplementationProperty` for a given :class:`W
         given attributes dict, unless :meth:`_may_override` prevents the operation.
 
 
-    .. method:: transform(self, attrs, add_missing=True)
+    .. method:: transform(self, attrs)
 
         :param dict attrs: Mapping holding attribute declarations from a class definition
-        :param add_missing: Whether implementations should be added for transitions
-                            without an implementation.
 
         Performs the following actions, in order:
 
         - :meth:`collect`: Create :class:`~base.ImplementationProperty` from the
           :class:`transition wrappers <base.TransitionWrapper>` in the :attr:`attrs` dict
-        - :meth:`add_missing_implementations`, if :attr:`add_missing` is ``True``:
+        - :meth:`add_missing_implementations`:
           create :class:`~base.ImplementationProperty` for the remaining :class:`transitions <base.Transition>`
+        - :meth:`register_hooks`: Detect hooks in the :attr:`attrs` dict
         - :meth:`fill_attrs`: Update the :attr:`attrs` dict with the
           :class:`implementations <base.ImplementationProperty>` defined in the
           previous steps.
