@@ -252,7 +252,8 @@ class HookTestCase(unittest.TestCase):
             pass
         hook4 = base.Hook(base.HOOK_BEFORE, alt_noop)
 
-        self.assertNotEqual(0, cmp(hook1, hook2))
+        # Hooks with same priority and function name compare equal wrt cmp
+        self.assertEqual(0, cmp(hook1, hook2))
         # Hook 3 has higher priority, comes first
         self.assertLess(hook3, hook1)
         # Hook 4 has lower name, comes first

@@ -282,8 +282,6 @@ class Hook(object):
         """Compare hooks of the same kind."""
         if not isinstance(other, Hook):
             return NotImplemented
-        if self.kind != other.kind:
-            return NotImplemented
         return cmp(
             (other.priority, self.function.__name__),
             (self.priority, other.function.__name__),
@@ -407,14 +405,9 @@ class ImplementationProperty(object):
         transition (Transition): the transition to perform
         workflow (Workflow): the workflow to which this is related.
 
-        check (callable list): optional functions to call along with state
-            checks to determine whether the transition is available.
-        before (callable list): optional callables to call *before* performing
-            the transition.
+        hooks (Hook list): hooks to apply along with the transition.
         implementation (callable): the code to invoke between 'before' and the
             state update.
-        after (callable list): optional callables to call *after* changing the
-            state and logging the transition.
     """
     def __init__(self, field_name, transition, workflow, implementation,
             hooks=None):
