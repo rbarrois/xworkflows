@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2011-2012 Raphaël Barrois
 
-__version__ = '0.3.2'
+__version__ = '0.4.0-beta'
 __author__ = 'Raphaël Barrois <raphael.barrois@polytechnique.org>'
 
 from . import base
