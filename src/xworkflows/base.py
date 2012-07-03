@@ -720,11 +720,10 @@ class ImplementationList(object):
             attrs[attrname] = implem
         return attrs
 
-    def transform(self, attrs, add_missing=True):
+    def transform(self, attrs):
         """Perform all actions on a given attribute dict."""
         self.collect(attrs)
-        if add_missing:
-            self.add_missing_implementations()
+        self.add_missing_implementations()
         self.register_hooks(attrs)
         self.fill_attrs(attrs)
 
