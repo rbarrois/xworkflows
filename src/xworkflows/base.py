@@ -359,7 +359,7 @@ class ImplementationWrapper(object):
     def _post_transition(self, result, *args, **kwargs):
         """Performs post-transition actions."""
         for hook in self._filter_hooks(HOOK_AFTER, HOOK_ON_ENTER):
-            hook(self.instance, *args, **kwargs)
+            hook(self.instance, result, *args, **kwargs)
 
     def __call__(self, *args, **kwargs):
         """Run the transition, with all checks."""

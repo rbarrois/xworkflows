@@ -958,6 +958,74 @@ class TransitionHookTestCase(unittest.TestCase):
         obj.foobar()
         self.assertEqual([2, 1], obj.hooks)
 
+    def test_before_args(self):
+        class MyWorkflowObject(base.WorkflowEnabled):
+            state = self.MyWorkflow()
+
+            def __init__(self):
+                self.args = None
+                self.kwargs = None
+
+            @base.before_transition('foobar')
+            def before(self, *args, **kwargs):
+                self.args = args
+                self.kwargs = kwargs
+
+        obj = MyWorkflowObject()
+        self.assertIsNone(obj.args)
+        self.assertIsNone(obj.kwargs)
+
+        obj.foobar(1, 2, 3, a=4, b=5)
+        self.assertEqual((1, 2, 3), obj.args)
+        self.assertEqual({'a': 4, 'b': 5}, obj.kwargs)
+
+    def test_check_args(self):
+        class MyWorkflowObject(base.WorkflowEnabled):
+            state = self.MyWorkflow()
+
+            def __init__(self):
+                self.args = None
+                self.kwargs = None
+
+            @base.transition_check('foobar')
+            def check(self, *args, **kwargs):
+                self.args = args
+                self.kwargs = kwargs
+                return True
+
+        obj = MyWorkflowObject()
+        self.assertIsNone(obj.args)
+        self.assertIsNone(obj.kwargs)
+
+        obj.foobar(1, 2, 3, a=4, b=5)
+        self.assertEqual((), obj.args)
+        self.assertEqual({}, obj.kwargs)
+
+    def test_after_args(self):
+        class MyWorkflowObject(base.WorkflowEnabled):
+            state = self.MyWorkflow()
+
+            def __init__(self):
+                self.args = None
+                self.kwargs = None
+
+            @base.after_transition('foobar')
+            def after(self, *args, **kwargs):
+                self.args = args
+                self.kwargs = kwargs
+
+            @base.transition()
+            def foobar(self, *args, **kwargs):
+                return 42
+
+        obj = MyWorkflowObject()
+        self.assertIsNone(obj.args)
+        self.assertIsNone(obj.kwargs)
+
+        obj.foobar(1, 2, 3, a=4, b=5)
+        self.assertEqual((42, 1, 2, 3), obj.args)
+        self.assertEqual({'a': 4, 'b': 5}, obj.kwargs)
+
     def test_mixed_fields(self):
         """Test hooks in a dual workflow setup."""
         class MyWorkflowObject(base.WorkflowEnabled):
