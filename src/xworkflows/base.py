@@ -890,8 +890,7 @@ class WorkflowEnabledMeta(type):
         """Attach a workflow to the attribute list (create a StateProperty)."""
         attrs[field_name] = StateProperty(state_field.workflow, field_name)
 
-        implems = ImplementationList(field_name, state_field.workflow)
-        implems.transform(attrs)
+        mcs._add_transitions(field_name, state_field.workflow, attrs)
 
     @classmethod
     def _find_workflows(mcs, attrs):
@@ -906,6 +905,21 @@ class WorkflowEnabledMeta(type):
             if isinstance(value, Workflow):
                 workflows[attribute] = StateField(value)
         return workflows
+
+    @classmethod
+    def _add_transitions(mcs, field_name, workflow, attrs, base_hooks):
+        """Collect and enhance transition definitions to a workflow.
+
+        Modifies the 'attrs' dict in-place.
+
+        Args:
+            field_name (str): name of the field transitions should update
+            workflow (Workflow): workflow we're working on
+            attrs (dict): dictionary of attributes to be updated.
+            base_hooks (dict): Hook definitions inherited from parents
+        """
+        implems = ImplementationList(field_name, workflow)
+        implems.transform(attrs)
 
     def __new__(mcs, name, bases, attrs):
         workflows = {}
