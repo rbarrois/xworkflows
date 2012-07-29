@@ -47,6 +47,7 @@ Those attributes will be transformed into similar attributes with friendlier API
   of the initial :class:`~base.State` of the :class:`Workflow` and converted into
   the appropriate :class:`~base.State`
 
+
 Accessing :class:`Workflow` states and transitions
 """"""""""""""""""""""""""""""""""""""""""""""""""
 
@@ -239,9 +240,9 @@ Additional control over the transition implementation can be obtained via hooks.
   - ``*args`` and ``**kwargs``: the arguments passed to the actual implementation
 
 - :func:`on_leave_state`: functions to call just before leaving a state, along with the
-  :func:`before_transition` hooks. They receive the same arguments as a ``before`` hook.
+  :func:`before_transition` hooks. They receive the same arguments as a :func:`before_transition` hook.
 
-- :func:`on_enter_state`: hooks to call just after entering a new state, along with :func:`after_transition` hooks. They receive the same arguments as a ``after`` hook.
+- :func:`on_enter_state`: hooks to call just after entering a new state, along with :func:`after_transition` hooks. They receive the same arguments as a :func:`after_transition` hook.
 
 
 The hook decorators all accept the following arguments:
@@ -260,7 +261,7 @@ The hook decorators all accept the following arguments:
         state1 = SomeWorkflow()
         state2 = AnotherWorkflow()
 
-        @xworkflows.after_transition(field='state2')
+        @xworkflows.on_enter_state(field='state2')
         def hook(self, res, *args, **kwargs):
             # Only called for transitions on state2.
             pass
@@ -295,7 +296,7 @@ Hook call order
 
 The order in which hooks are applied is computed based on the following rules:
 
-- Compute the list of hooks to apply
+- Build the list of hooks to apply
     - When testing if a transition can be applied, use all :func:`transition_check` hooks
     - Before performing a transition, use all :func:`before_transition` and :func:`on_leave_state` hooks
     - After performing a transition, use all :func:`after_transition` and :func:`on_enter_state` hooks

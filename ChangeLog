@@ -20,7 +20,7 @@
 
 *Backward incompatible:*
 
-    * The :class:`~xworkflows.base.ImplementationWrapper` class no longer accepts the
+    * The (private) :class:`~xworkflows.base.ImplementationWrapper` class no longer accepts the
       ``check``, ``before``, ``after`` arguments (use ``hooks`` instead)
 
 0.3.2 (05/06/2012)
