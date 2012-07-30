@@ -601,7 +601,9 @@ class ImplementationList(object):
             name to the associated implementation.
         workflow (Workflow): the related workflow
         transitions_at (dict(str => str)): maps a transition name to the
-            name of the attribute holding the related transition.
+            name of the attribute holding the related implementation.
+        custom_implems (str set): list of transition names for which a custom
+            implementation has been defined.
     """
 
     def __init__(self, state_field, workflow):
@@ -609,6 +611,20 @@ class ImplementationList(object):
         self.workflow = workflow
         self.implementations = {}
         self.transitions_at = {}
+        self.custom_implems = set()
+
+    def load_parent_implems(self, parent_implems):
+        """Import previously defined implementations.
+
+        Args:
+            parent_implems (dict(str => (str, ImplementationProperty))): Maps
+                a transition name to the pair (attrname, property) describing
+                the related implementation and the attribute it is set at.
+        """
+        for trname, implemdef in parent_implems.items():
+            attrname, implem = implemdef
+            self.implementations[trname] = implem
+            self.transitions_at[trname] = attrname
 
     def add_implem(self, transition, attribute, function, **kwargs):
         """Add an implementation.
@@ -657,12 +673,28 @@ class ImplementationList(object):
                         "at %s." % (name, value, transition, other_implem_at))
 
                 implem = self.add_implem(transition, name, value.func)
+                self.custom_implems.add(transition.name)
                 if value.check:
                     implem.add_hook(Hook(HOOK_CHECK, value.check))
                 if value.before:
                     implem.add_hook(Hook(HOOK_BEFORE, value.before))
                 if value.after:
                     implem.add_hook(Hook(HOOK_AFTER, value.after))
+
+    def get_custom_implementations(self):
+        """Retrieve a list of cutom implementations.
+
+        Returns:
+            dict(str => (str, ImplementationProperty)): Maps a transition name
+                to a tuple of the attribute it's defined at and the related
+                ImplementationProperty.
+        """
+        implems = {}
+        for trname in self.custom_implems:
+            attrname = self.transitions_at[trname]
+            implem = self.implementations[trname]
+            implems[trname] = (attrname, implem)
+        return implems
 
     def add_missing_implementations(self):
         for transition in self.workflow.transitions:
@@ -882,6 +914,8 @@ class WorkflowEnabledMeta(type):
     - one class attribute for each the attached workflows,
     - a '_workflows' attribute, a dict mapping each field_name to the related
         Workflow,
+    - a '_xworkflows_implems' attribute, a dict mapping each field_name to a
+        dict of related ImplementationProperty.
     - one class attribute for each transition for each attached workflow
     """
 
@@ -889,8 +923,6 @@ class WorkflowEnabledMeta(type):
     def _add_workflow(mcs, field_name, state_field, attrs):
         """Attach a workflow to the attribute list (create a StateProperty)."""
         attrs[field_name] = StateProperty(state_field.workflow, field_name)
-
-        mcs._add_transitions(field_name, state_field.workflow, attrs)
 
     @classmethod
     def _find_workflows(mcs, attrs):
@@ -907,7 +939,7 @@ class WorkflowEnabledMeta(type):
         return workflows
 
     @classmethod
-    def _add_transitions(mcs, field_name, workflow, attrs):
+    def _add_transitions(mcs, field_name, workflow, attrs, field_implems=None):
         """Collect and enhance transition definitions to a workflow.
 
         Modifies the 'attrs' dict in-place.
@@ -919,19 +951,38 @@ class WorkflowEnabledMeta(type):
             base_hooks (dict): Hook definitions inherited from parents
         """
         implems = ImplementationList(field_name, workflow)
+        if field_implems:
+            implems.load_parent_implems(field_implems)
         implems.transform(attrs)
 
+        return implems.get_custom_implementations()
+
     def __new__(mcs, name, bases, attrs):
+        # Store field_name => StateField mapping
         workflows = {}
+        # Store field_name => implementation definition
+        implems = {}
+
+        # Collect workflows and implementations from parents
         for base in bases:
             if hasattr(base, '_workflows'):
                 workflows.update(base._workflows)
+                implems.update(base._xworkflows_implems)
 
         workflows.update(mcs._find_workflows(attrs))
+
+        # Update attributes with workflow descriptions, and collect
+        # implementation declarations.
         for field_name, state_field in workflows.items():
             mcs._add_workflow(field_name, state_field, attrs)
+            field_implems = implems.setdefault(field_name, {})
 
+            field_implems.update(mcs._add_transitions(field_name,
+                state_field.workflow, attrs, field_implems))
+
+        # Set specific attributes for children
         attrs['_workflows'] = workflows
+        attrs['_xworkflows_implems'] = implems
         return super(WorkflowEnabledMeta, mcs).__new__(mcs, name, bases, attrs)
 
 
