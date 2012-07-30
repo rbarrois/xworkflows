@@ -333,6 +333,8 @@ Hooks can also be bound to the implementation at the :func:`transition` level::
     Use :func:`before_transition`, :func:`after_transition` and :func:`transition_check`
     instead; will be removed in 0.5.0.
 
+    The old behaviour did not allow for hook overriding in inherited workflows.
+
 
 Checking transition availability
 """"""""""""""""""""""""""""""""
