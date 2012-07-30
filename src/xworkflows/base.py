@@ -664,7 +664,7 @@ class ImplementationList(object):
             if self.should_collect(value):
                 transition = self.workflow.transitions[value.trname]
 
-                if value.trname in self.implementations:
+                if value.trname in self.implementations and value.trname in self.custom_implems:
                     # We already have an implementation registered.
                     other_implem_at = self.transitions_at[value.trname]
                     raise ValueError(
