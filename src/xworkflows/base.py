@@ -672,7 +672,7 @@ class ImplementationList(object):
     def register_hooks(self, attrs):
         for attr in attrs.values():
             if is_callable(attr) and hasattr(attr, 'xworkflows_hook'):
-                    self.register_function_hooks(attr)
+                self.register_function_hooks(attr)
 
     def register_function_hooks(self, func):
         """Looks at an object method and registers it for relevent transitions."""
