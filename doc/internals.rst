@@ -325,10 +325,43 @@ In order to use a :class:`Workflow`, related objects should inherit from the :cl
     - Wrapping all :func:`transition`-decorated functions into :class:`~base.ImplementationProperty` wrappers
     - Adding noop implementations for other transitions
 
+    .. method:: _add_workflow(mcs, field_name, state_field, attrs)
+
+        Adds a workflow to the attributes dict of the future class.
+
+        :param str field_name: Name of the field at which the field holding
+            the current state will live
+        :param StateField state_field: The :class:`~base.StateField`
+            as returned by :func:`_find_workflows`
+        :param dict attrs: Attribute dict of the future class, updated with the new
+            :class:`~base.StateProperty`.
+
+        .. note:: This method is also an extension point for custom XWorkflow-related
+            libraries.
+
+    .. method:: _find_workflows(mcs, attrs)
+
+        Find all workflow definitions in a class attributes dict.
+
+        :param dict attrs: Attribute dict of the future class
+
+        :return: A dict mapping a field name to a :class:`~base.StateField` describing
+            parameters for the workflow
+
+        .. note:: This method is also an extension point for custom XWorkflow-related
+            libraries.
+
     .. attribute:: _workflows
 
         This class-level attribute holds a dict mapping an attribute to the related :class:`Workflow`.
 
+        .. note:: This is a private attribute, and may change at any time in the future.
+
+    .. attribute:: _xworkflows_implems
+
+        This class-level attribute holds a dict mapping an attribute to the related implementations.
+
+        .. note:: This is a private attribute, and may change at any time in the future.
 
 .. class:: base.WorkflowEnabledMeta
 
