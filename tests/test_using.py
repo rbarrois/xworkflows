@@ -381,6 +381,27 @@ class WorkflowEnabledTestCase(unittest.TestCase):
         obj.gobaz()
         self.assertEqual(self.MyWorkflow.states.baz, obj.state)
 
+    def test_inherited_implementation(self):
+        class MyObject(base.WorkflowEnabled):
+            state = self.MyWorkflow()
+
+            @base.transition()
+            def foobar(self):
+                return 42
+
+        class MySubObject(MyObject):
+            pass
+
+        obj = MySubObject()
+        self.assertTrue(hasattr(MySubObject, '_workflows'))
+        self.assertIn('state', MySubObject._workflows)
+        self.assertEqual(self.MyWorkflow.states.foo, obj.state)
+        self.assertEqual(42, obj.foobar())
+        self.assertEqual(self.MyWorkflow.states.bar, obj.state)
+        obj.gobaz()
+        self.assertEqual(self.MyWorkflow.states.baz, obj.state)
+
+
     def test_inheritance_override_workflwo(self):
         class MyAltWorkflow(base.Workflow):
             states = (
