@@ -907,7 +907,7 @@ class WorkflowEnabledMeta(type):
         return workflows
 
     @classmethod
-    def _add_transitions(mcs, field_name, workflow, attrs, base_hooks):
+    def _add_transitions(mcs, field_name, workflow, attrs):
         """Collect and enhance transition definitions to a workflow.
 
         Modifies the 'attrs' dict in-place.
