@@ -939,7 +939,7 @@ class WorkflowEnabledMeta(type):
         return workflows
 
     @classmethod
-    def _add_transitions(mcs, field_name, workflow, attrs, field_implems=None):
+    def _add_transitions(mcs, field_name, workflow, attrs, implems=None):
         """Collect and enhance transition definitions to a workflow.
 
         Modifies the 'attrs' dict in-place.
@@ -948,19 +948,24 @@ class WorkflowEnabledMeta(type):
             field_name (str): name of the field transitions should update
             workflow (Workflow): workflow we're working on
             attrs (dict): dictionary of attributes to be updated.
-            base_hooks (dict): Hook definitions inherited from parents
-        """
-        implems = ImplementationList(field_name, workflow)
-        if field_implems:
-            implems.load_parent_implems(field_implems)
-        implems.transform(attrs)
+            implems (ImplementationList): Implementation list from parent
+                classes (optional)
 
-        return implems.get_custom_implementations()
+        Returns:
+            ImplementationList: The new implementation list for this field.
+        """
+        new_implems = ImplementationList(field_name, workflow)
+        if implems:
+            new_implems.load_parent_implems(
+                implems.get_custom_implementations())
+        new_implems.transform(attrs)
+
+        return new_implems
 
     def __new__(mcs, name, bases, attrs):
-        # Store field_name => StateField mapping
+        # Map field_name => StateField
         workflows = {}
-        # Store field_name => implementation definition
+        # Map field_name => ImplementationList
         implems = {}
 
         # Collect workflows and implementations from parents
@@ -973,12 +978,11 @@ class WorkflowEnabledMeta(type):
 
         # Update attributes with workflow descriptions, and collect
         # implementation declarations.
-        for field_name, state_field in workflows.items():
-            mcs._add_workflow(field_name, state_field, attrs)
-            field_implems = implems.setdefault(field_name, {})
+        for field, state_field in workflows.items():
+            mcs._add_workflow(field, state_field, attrs)
 
-            field_implems.update(mcs._add_transitions(field_name,
-                state_field.workflow, attrs, field_implems))
+            implems[field] = mcs._add_transitions(
+                field, state_field.workflow, attrs, implems.get(field))
 
         # Set specific attributes for children
         attrs['_workflows'] = workflows
