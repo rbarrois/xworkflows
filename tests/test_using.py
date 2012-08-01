@@ -406,7 +406,7 @@ class WorkflowEnabledTestCase(unittest.TestCase):
             state = self.MyWorkflow()
 
             @base.transition()
-            def foobar(self):
+            def foobar(self):  # pragma: no cover
                 return 13
 
         class MySubObject(MyObject):
@@ -1240,10 +1240,8 @@ class HookInheritanceTestCase(unittest.TestCase):
         class MyWorkflowObject(base.WorkflowEnabled):
             state = self.MyWorkflow()
 
-            def __init__(self, state=None):
+            def __init__(self):
                 self.hooks = []
-                if state:
-                    self.state = state
 
             def seen_hook(self, hook_id):
                 self.hooks.append(hook_id)
