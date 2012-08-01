@@ -8,6 +8,7 @@ import re
 import warnings
 
 from .compat import is_callable, is_string, u
+from . import utils
 
 class WorkflowError(Exception):
     """Base class for errors from the xworkflows module."""
@@ -701,10 +702,10 @@ class ImplementationList(object):
             if transition.name not in self.implementations:
                 self.add_implem(transition, transition.name, noop)
 
-    def register_hooks(self, attrs):
-        for attr in attrs.values():
-            if is_callable(attr) and hasattr(attr, 'xworkflows_hook'):
-                self.register_function_hooks(attr)
+    def register_hooks(self, cls):
+        for field, value in utils.iterclass(cls):
+            if is_callable(value) and hasattr(value, 'xworkflows_hook'):
+                self.register_function_hooks(value)
 
     def register_function_hooks(self, func):
         """Looks at an object method and registers it for relevent transitions."""
@@ -754,7 +755,6 @@ class ImplementationList(object):
         """Perform all actions on a given attribute dict."""
         self.collect(attrs)
         self.add_missing_implementations()
-        self.register_hooks(attrs)
         self.fill_attrs(attrs)
 
 
@@ -962,6 +962,11 @@ class WorkflowEnabledMeta(type):
 
         return new_implems
 
+    @classmethod
+    def _register_hooks(mcs, cls, implems):
+        for implem_list in implems.values():
+            implem_list.register_hooks(cls)
+
     def __new__(mcs, name, bases, attrs):
         # Map field_name => StateField
         workflows = {}
@@ -969,7 +974,7 @@ class WorkflowEnabledMeta(type):
         implems = {}
 
         # Collect workflows and implementations from parents
-        for base in bases:
+        for base in reversed(bases):
             if hasattr(base, '_workflows'):
                 workflows.update(base._workflows)
                 implems.update(base._xworkflows_implems)
@@ -987,7 +992,10 @@ class WorkflowEnabledMeta(type):
         # Set specific attributes for children
         attrs['_workflows'] = workflows
         attrs['_xworkflows_implems'] = implems
-        return super(WorkflowEnabledMeta, mcs).__new__(mcs, name, bases, attrs)
+
+        cls = super(WorkflowEnabledMeta, mcs).__new__(mcs, name, bases, attrs)
+        mcs._register_hooks(cls, implems)
+        return cls
 
 
 class BaseWorkflowEnabled(object):

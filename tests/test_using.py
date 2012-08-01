@@ -1282,22 +1282,11 @@ class HookInheritanceTestCase(unittest.TestCase):
         # after: 2
         self.assertEqual([1, 3, 2], obj.hooks)
 
-    def test_conflict_error(self):
-        """Tests that a hook with a conflicting name raises a TypeError."""
-
-        def make_invalid_object():
-            class MySubWorkflowObject(self.MyWorkflowObject):
-                @base.before_transition('foobar')
-                def hook1(self, *args, **kwargs):
-                    self.seen_hook(3)
-
-        self.assertRaises(TypeError, make_invalid_object)
-
-    def test_conflict_replace(self):
-        """Tests that a hook with a conflicting name takes precedence."""
+    def test_conflict_extend(self):
+        """Tests that a hook with a conflicting name replaces parents.."""
 
         class MySubWorkflowObject(self.MyWorkflowObject):
-            @base.before_transition('foobar', replace=True)
+            @base.before_transition('foobar')
             def hook1(self, *args, **kwargs):
                 self.seen_hook(3)
 
@@ -1308,22 +1297,6 @@ class HookInheritanceTestCase(unittest.TestCase):
         # before: 3
         # after: 2
         self.assertEqual([3, 2], obj.hooks)
-
-    def test_conflict_extend(self):
-        """Tests that a hook with a conflicting name takes precedence."""
-
-        class MySubWorkflowObject(self.MyWorkflowObject):
-            @base.before_transition('foobar', replace=False)
-            def hook1(self, *args, **kwargs):
-                self.seen_hook(3)
-
-        obj = MySubWorkflowObject()
-        self.assertEqual(self.MyWorkflow.states.foo, obj.state)
-        obj.foobar()
-        # check: -
-        # before: 1, 3
-        # after: 2
-        self.assertEqual([1, 3, 2], obj.hooks)
 
 
 
