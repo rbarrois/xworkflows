@@ -782,6 +782,28 @@ Building the list of :class:`~base.ImplementationProperty` for a given :class:`W
             self.implementations == {'foo': <ImplementationProperty for 'foo' on 'state': <function bar at 0xdeadbeed>>}
             self.transitions_at == {'foo': 'bar'}
 
+    .. attribute:: custom_implems
+
+        Set of name of implementations which were remapped within the workflow.
+
+
+
+    .. method:: load_parent_implems(self, parent_implems)
+
+        Loads implementations defined in a parent :class:`ImplementationList`.
+
+        :param parent_implems: The :class:`~base.ImplementationList` from a parent
+        :type parent_implems: :class:`~base.ImplementationList`
+
+
+    .. method:: get_custom_implementations(self)
+
+        Retrieves definition of custom (non-automatic) implementations from the current list.
+
+        :yields: ``(trname, attr, implem)``: Tuples containing the transition name,
+            the name of the attribute its implementation is stored at, and that
+            implementation (a :class:`~base.ImplementationProperty`).
+
 
     .. method:: should_collect(self, value)
 
@@ -806,9 +828,9 @@ Building the list of :class:`~base.ImplementationProperty` for a given :class:`W
         :class:`~base.Transition` that weren't collected in the :func:`collect` step.
 
 
-    .. method:: register_hooks(self, attrs)
+    .. method:: register_hooks(self, cls)
 
-        Walks the attribute definitions and collects hooks from those with a
+        Walks the class attributes and collects hooks from those with a
         ``xworkflows_hook`` attribute (through :meth:`register_function_hooks`)
 
 
@@ -846,7 +868,6 @@ Building the list of :class:`~base.ImplementationProperty` for a given :class:`W
           :class:`transition wrappers <base.TransitionWrapper>` in the :attr:`attrs` dict
         - :meth:`add_missing_implementations`:
           create :class:`~base.ImplementationProperty` for the remaining :class:`transitions <base.Transition>`
-        - :meth:`register_hooks`: Detect hooks in the :attr:`attrs` dict
         - :meth:`fill_attrs`: Update the :attr:`attrs` dict with the
           :class:`implementations <base.ImplementationProperty>` defined in the
           previous steps.
