@@ -618,14 +618,13 @@ class ImplementationList(object):
         """Import previously defined implementations.
 
         Args:
-            parent_implems (dict(str => (str, ImplementationProperty))): Maps
-                a transition name to the pair (attrname, property) describing
-                the related implementation and the attribute it is set at.
+            parent_implems (ImplementationList): List of implementations defined
+                in a parent class.
         """
-        for trname, implemdef in parent_implems.items():
-            attrname, implem = implemdef
+        for trname, attr, implem in parent_implems.get_custom_implementations():
             self.implementations[trname] = implem
-            self.transitions_at[trname] = attrname
+            self.transitions_at[trname] = attr
+            self.custom_implems.add(trname)
 
     def add_implem(self, transition, attribute, function, **kwargs):
         """Add an implementation.
@@ -685,17 +684,15 @@ class ImplementationList(object):
     def get_custom_implementations(self):
         """Retrieve a list of cutom implementations.
 
-        Returns:
-            dict(str => (str, ImplementationProperty)): Maps a transition name
-                to a tuple of the attribute it's defined at and the related
-                ImplementationProperty.
+        Yields:
+            (str, str, ImplementationProperty) tuples: The name of the attribute
+                an implementation lives at, the name of the related transition,
+                and the related implementation.
         """
-        implems = {}
         for trname in self.custom_implems:
-            attrname = self.transitions_at[trname]
+            attr = self.transitions_at[trname]
             implem = self.implementations[trname]
-            implems[trname] = (attrname, implem)
-        return implems
+            yield (trname, attr, implem)
 
     def add_missing_implementations(self):
         for transition in self.workflow.transitions:
@@ -956,8 +953,7 @@ class WorkflowEnabledMeta(type):
         """
         new_implems = ImplementationList(field_name, workflow)
         if implems:
-            new_implems.load_parent_implems(
-                implems.get_custom_implementations())
+            new_implems.load_parent_implems(implems)
         new_implems.transform(attrs)
 
         return new_implems
