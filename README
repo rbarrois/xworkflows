@@ -58,3 +58,27 @@ It allows to easilly define a workflow, attach it to a class, and use its transi
     13
     >>> o.state
     State('baz')
+
+Hooks
+-----
+
+Custom functions can be hooked to transactions, in order to run before/after a transition,
+when entering a state, when leaving a state, ...::
+
+
+    class MyObject(xworkflows.WorkflowEnabled):
+
+        state = MyWorkflow()
+
+        @xworkflows.before_transition('foobar')
+        def my_hook(self, *args, **kwargs):
+            # *args and **kwargs are those passed to MyObject.foobar(...)
+            pass
+
+        @xworkflows.on_enter_state('bar')
+        def my_other_hook(self, result, *args, **kwargs):
+            # Will be called just after any transition entering 'bar'
+            # result is the value returned by that transition
+            # *args, **kwargs are the arguments/keyword arguments passed to the
+            # transition.
+            pass
