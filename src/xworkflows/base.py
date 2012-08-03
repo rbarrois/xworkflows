@@ -239,6 +239,18 @@ class Hook(object):
         self.function = function
         self.names = names or ('*',)
 
+    def _match_state(self, state):
+        """Checks whether a given State matches self.names."""
+        return (self.names == '*'
+                or state in self.names
+                or state.name in self.names)
+
+    def _match_transition(self, transition):
+        """Checks whether a given Transition matches self.names."""
+        return (self.names == '*'
+                or transition in self.names
+                or transition.name in self.names)
+
     def applies_to(self, transition, from_state=None):
         """Whether this hook applies to the given transition/state.
 
@@ -251,15 +263,15 @@ class Hook(object):
         if '*' in self.names:
             return True
         elif self.kind in (HOOK_BEFORE, HOOK_AFTER, HOOK_CHECK):
-            return transition.name in self.names
+            return self._match_transition(transition)
         elif self.kind == HOOK_ON_ENTER:
-            return transition.target.name in self.names
+            return self._match_state(transition.target)
         elif from_state is None:
             # Testing whether the hook may apply to at least one source of the
             # transition
-            return any(src.name in self.names for src in transition.source)
+            return any(self._match_state(src) for src in transition.source)
         else:
-            return from_state.name in self.names
+            return self._match_state(from_state)
 
     def __call__(self, *args, **kwargs):
         return self.function(*args, **kwargs)

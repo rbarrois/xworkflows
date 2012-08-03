@@ -1026,6 +1026,28 @@ class TransitionHookTestCase(unittest.TestCase):
         obj.foobar()
         self.assertEqual([2, 1], obj.hooks)
 
+    def test_named_state(self):
+        class MyWorkflowObject(base.WorkflowEnabled):
+            state = self.MyWorkflow()
+
+            def __init__(self):
+                self.args = None
+                self.kwargs = None
+
+            @base.before_transition(self.MyWorkflow.transitions.foobar)
+            def before(self, *args, **kwargs):
+                self.args = args
+                self.kwargs = kwargs
+
+        obj = MyWorkflowObject()
+        self.assertIsNone(obj.args)
+        self.assertIsNone(obj.kwargs)
+
+        obj.foobar(1, 2, 3, a=4, b=5)
+        self.assertEqual((1, 2, 3), obj.args)
+        self.assertEqual({'a': 4, 'b': 5}, obj.kwargs)
+
+
     def test_before_args(self):
         class MyWorkflowObject(base.WorkflowEnabled):
             state = self.MyWorkflow()
