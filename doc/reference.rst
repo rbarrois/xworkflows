@@ -283,7 +283,7 @@ The hook decorators all accept the following arguments:
             pass
 
 
-Hook decorators can also be stacked, in order to express compless hooking systems::
+Hook decorators can also be stacked, in order to express complex hooking systems::
 
     @xworkflows.before_transition('foobar', priority=4)
     @xworkflows.on_leave_state('baz')
