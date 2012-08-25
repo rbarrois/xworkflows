@@ -886,9 +886,13 @@ class TransitionHookTestCase(unittest.TestCase):
 
         Matching is performed on (priority, callable, kind) pairs.
         """
-        self.assertItemsEqual(
-            [(priority, fun, kind) for (priority, fun) in expected],
-            [(hook.priority, hook.function, hook.kind) for hook in actual])
+        expected_items = sorted(
+            ((priority, fun, kind) for (priority, fun) in expected),
+            key=lambda t: (t[0], hash(t[1]), t[2]))
+        actual_items = sorted(
+            ((hook.priority, hook.function, hook.kind) for hook in actual),
+            key=lambda t: (t[0], hash(t[1]), t[2]))
+        self.assertEqual(list(expected_items), list(actual_items))
 
     def test_declarations(self):
         obj = self.MyWorkflowObject()
@@ -1209,9 +1213,13 @@ class StateHookTestCase(unittest.TestCase):
 
         Matching is performed on (priority, callable, kind) pairs.
         """
-        self.assertItemsEqual(
-            [(priority, fun, kind) for (priority, fun) in expected],
-            [(hook.priority, hook.function, hook.kind) for hook in actual])
+        expected_items = sorted(
+            ((priority, fun, kind) for (priority, fun) in expected),
+            key=lambda t: (t[0], hash(t[1]), t[2]))
+        actual_items = sorted(
+            ((hook.priority, hook.function, hook.kind) for hook in actual),
+            key=lambda t: (t[0], hash(t[1]), t[2]))
+        self.assertEqual(list(expected_items), list(actual_items))
 
     def test_declarations(self):
         obj = self.MyWorkflowObject()

@@ -679,7 +679,7 @@ class ImplementationList(object):
     def collect(self, attrs):
         """Collect the implementations from a given attributes dict."""
 
-        for name, value in attrs.iteritems():
+        for name, value in attrs.items():
             if self.should_collect(value):
                 transition = self.workflow.transitions[value.trname]
 

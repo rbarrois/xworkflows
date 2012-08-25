@@ -80,9 +80,9 @@ class TransitionListTestCase(unittest.TestCase):
         self.assertEqual(2, len(self.tl))
 
     def test_available(self):
-        self.assertItemsEqual([self.foobar, self.gobaz],
+        self.assertEqual([self.foobar, self.gobaz],
                               list(self.tl.available_from(self.foo)))
-        self.assertItemsEqual([self.gobaz],
+        self.assertEqual([self.gobaz],
                               list(self.tl.available_from(self.bar)))
         self.assertEqual([], list(self.tl.available_from(self.baz)))
 
