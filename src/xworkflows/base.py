@@ -793,7 +793,7 @@ class WorkflowMeta(type):
         return new_class
 
 
-class Workflow(object):
+class BaseWorkflow(object):
     """Base class for all workflows.
 
     Attributes:
@@ -807,8 +807,6 @@ class Workflow(object):
     another name has been specified through the use of the @transition
     decorator) is provided to perform the specified transition.
     """
-    __metaclass__ = WorkflowMeta
-
     implementation_class = ImplementationWrapper
 
     def log_transition(self, transition, from_state, instance, *args, **kwargs):
@@ -830,6 +828,21 @@ class Workflow(object):
         logger.info(u("%s performed transition %s.%s (%s -> %s)"), instance_repr,
             self.__class__.__name__, transition.name, from_state.name,
             transition.target.name)
+
+
+# Workaround for metaclasses on python2/3.
+# Equivalent to:
+# Python2
+#
+# class Workflow(BaseWorkflow):
+#     __metaclass__ = WorkflowMeta
+#
+# Python3
+#
+# class Workflow(metaclass=WorkflowMeta):
+#     pass
+
+Workflow = WorkflowMeta('Workflow', (BaseWorkflow,), {})
 
 
 class StateWrapper(object):
@@ -1017,5 +1030,16 @@ class BaseWorkflowEnabled(object):
     """
 
 
-class WorkflowEnabled(BaseWorkflowEnabled):
-    __metaclass__ = WorkflowEnabledMeta
+# Workaround for metaclasses on python2/3.
+# Equivalent to:
+# Python2
+#
+# class WorkflowEnabled(BaseWorkflowEnabled):
+#     __metaclass__ = WorkflowEnabledMeta
+#
+# Python3
+#
+# class WorkflowEnabled(metaclass=WorkflowEnabledMeta):
+#     pass
+
+WorkflowEnabled = WorkflowEnabledMeta('WorkflowEnabled', (BaseWorkflowEnabled,), {})
