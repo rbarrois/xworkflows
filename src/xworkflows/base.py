@@ -7,7 +7,7 @@ import logging
 import re
 import warnings
 
-from .compat import is_callable, is_string, u
+from .compat import is_callable, is_python3, is_string, u
 from . import utils
 
 class WorkflowError(Exception):
@@ -832,7 +832,7 @@ class BaseWorkflow(object):
         """
         logger = logging.getLogger('xworkflows.transitions')
         try:
-            instance_repr = unicode(repr(instance), 'utf8', 'ignore')
+            instance_repr = u(repr(instance), 'ignore')
         except (UnicodeEncodeError, UnicodeDecodeError):
             instance_repr = u("<bad repr>")
         logger.info(u("%s performed transition %s.%s (%s -> %s)"), instance_repr,
@@ -871,7 +871,7 @@ class StateWrapper(object):
             return self.state == other.state
         if isinstance(other, State):
             return self.state == other
-        elif isinstance(other, basestring):
+        elif is_string(other):
             return self.state.name == other
         else:
             return NotImplemented

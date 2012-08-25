@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from .compat import unittest
+from .compat import unittest, u
 
 from xworkflows import base
 
