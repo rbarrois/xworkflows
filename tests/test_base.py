@@ -135,7 +135,7 @@ class StateWrapperTestCase(unittest.TestCase):
     def test_representation(self):
         self.assertEqual(str(self.foo), str(self.sf))
         self.assertIn(repr(self.foo), repr(self.sf))
-        self.assertEqual(self.foo.title, unicode(self.sf))
+        self.assertEqual(self.foo.name, u(self.sf))
         self.assertEqual(hash(self.foo.name), hash(self.sf))
 
 

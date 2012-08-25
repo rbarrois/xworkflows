@@ -41,6 +41,9 @@ class State(object):
         self.name = name
         self.title = title
 
+    def __str__(self):
+        return self.name
+
     def __repr__(self):
         return '<%s: %r>' % (self.__class__.__name__, self.name)
 
@@ -877,7 +880,7 @@ class StateWrapper(object):
         return not (self == other)
 
     def __str__(self):
-        return str(self.state)
+        return self.state.name
 
     def __repr__(self):
         return '<%s: %r>' % (self.__class__.__name__, self.state)
@@ -890,8 +893,9 @@ class StateWrapper(object):
         else:
             return getattr(self.state, attr)
 
-    def __unicode__(self):
-        return unicode(self.state.title)
+    if not is_python3:
+        def __unicode__(self):
+            return u(str(self))
 
     def __hash__(self):
         # A StateWrapper should compare equal to its name.
