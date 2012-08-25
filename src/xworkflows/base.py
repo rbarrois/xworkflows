@@ -291,14 +291,21 @@ class Hook(object):
             return NotImplemented
         return not (self == other)
 
-    def __cmp__(self, other):
+    def __lt__(self, other):
         """Compare hooks of the same kind."""
         if not isinstance(other, Hook):
             return NotImplemented
-        return cmp(
-            (other.priority, self.function.__name__),
-            (self.priority, other.function.__name__),
-        )
+        return (
+            (other.priority, self.function.__name__)
+            < (self.priority, other.function.__name__))
+
+    def __gt__(self, other):
+        """Compare hooks of the same kind."""
+        if not isinstance(other, Hook):
+            return NotImplemented
+        return (
+            (other.priority, self.function.__name__)
+            > (self.priority, other.function.__name__))
 
     def __repr__(self):
         return '<%s: %s %r>' % (
