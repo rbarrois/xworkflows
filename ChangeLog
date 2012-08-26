@@ -1,3 +1,15 @@
+1.0.0 (current)
+---------------
+
+*New:*
+
+    * Add support for Python 2.6 to 3.2
+
+*Backward incompatible:*
+
+    * The string representation of :class:`~xworkflows.base.State` and :class:`~xworkflows.base.StateWrapper`
+      now reflects the state's name, as does their :meth:`unicode` representation in Python 2.X.
+
 0.4.1 (03/08/2012)
 ------------------
 
