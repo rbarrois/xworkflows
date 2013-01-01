@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-# coding: utf-8
+# -*- coding: utf-8 -*-
+# Copyright (c) 2011-2013 Raphaël Barrois
+# This code is distributed under the two-clause BSD License.
 
 from distutils.core import setup
 from distutils import cmd
@@ -56,7 +58,7 @@ setup(
     name="xworkflows",
     version=get_version(),
     author="Raphaël Barrois",
-    author_email="raphael.barrois@polyconseil.fr",
+    author_email="raphael.barrois+xworkflows@polytechnique.org",
     description=("A library implementing workflows (or state machines) "
         "for Python projects."),
     license="BSD",

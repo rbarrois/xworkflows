@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-# coding: utf-8
+# -*- coding: utf-8 -*-
+# Copyright (c) 2011-2013 Raphaël Barrois
+# This code is distributed under the two-clause BSD License.
 
 from .compat import unittest, u
 

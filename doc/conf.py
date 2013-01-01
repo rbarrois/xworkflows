@@ -42,7 +42,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'XWorkflows'
-copyright = u'2011-2012, Raphaël Barrois'
+copyright = u'2011-2013, Raphaël Barrois'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

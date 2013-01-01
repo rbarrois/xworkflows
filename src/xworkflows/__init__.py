@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011-2012 Raphaël Barrois
+# Copyright (c) 2011-2013 Raphaël Barrois
+# This code is distributed under the two-clause BSD License.
 
 __version__ = '0.4.1'
-__author__ = 'Raphaël Barrois <raphael.barrois@polytechnique.org>'
+__author__ = 'Raphaël Barrois <raphael.barrois+xworkflows@polytechnique.org>'
 
 from . import base
 
