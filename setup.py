@@ -14,7 +14,7 @@ root_dir = os.path.abspath(os.path.dirname(__file__))
 
 def get_version():
     version_re = re.compile(r"^__version__ = '([\w_.-]+)'$")
-    with open(os.path.join(root_dir, 'src', 'xworkflows', '__init__.py')) as f:
+    with open(os.path.join(root_dir, 'xworkflows', '__init__.py')) as f:
         for line in f:
             match = version_re.match(line[:-1])
             if match:
@@ -47,7 +47,7 @@ class test(cmd.Command):
             verbosity=0
 
         ex_path = sys.path
-        sys.path.insert(0, os.path.join(root_dir, 'src'))
+        sys.path.insert(0, root_dir)
         suite = unittest.TestLoader().loadTestsFromName(self.test_suite)
 
         unittest.TextTestRunner(verbosity=verbosity).run(suite)
@@ -65,7 +65,6 @@ setup(
     keywords=['workflow', 'state machine', 'automaton'],
     url="http://github.com/rbarrois/xworkflows",
     download_url="http://pypi.python.org/pypi/xworkflows/",
-    package_dir={'': 'src'},
     packages=['xworkflows'],
     classifiers=[
         "Development Status :: 4 - Beta",
