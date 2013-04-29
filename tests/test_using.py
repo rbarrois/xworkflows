@@ -1323,6 +1323,42 @@ class HookInheritanceTestCase(unittest.TestCase):
         # after: 2
         self.assertEqual([1, 2], obj.hooks)
 
+    def test_multiple_inherited(self):
+        class WorkflowObject(base.WorkflowEnabled):
+            state = self.MyWorkflow()
+
+            def __init__(self):
+                self.hooks = []
+
+            def seen_hook(self, hook_id):
+                self.hooks.append(hook_id)
+
+            @base.on_leave_state('foo')
+            def hook1(self, *args, **kwargs):
+                self.seen_hook(1)
+
+        class MyFirstSub(WorkflowObject):
+            pass
+
+        class MySecondSub(WorkflowObject):
+            pass
+
+        o1 = MyFirstSub()
+        self.assertEqual(self.MyWorkflow.states.foo, o1.state)
+        o1.foobar()
+        # check: -
+        # before: 1
+        # after: 2
+        self.assertEqual([1], o1.hooks)
+
+        o2 = MySecondSub()
+        self.assertEqual(self.MyWorkflow.states.foo, o2.state)
+        o2.foobar()
+        # check: -
+        # before: 1
+        # after: 2
+        self.assertEqual([1], o2.hooks)
+
     def test_extra_hook(self):
         class MySubWorkflowObject(self.MyWorkflowObject):
             @base.before_transition('foobar')
@@ -1352,6 +1388,46 @@ class HookInheritanceTestCase(unittest.TestCase):
         # before: 3
         # after: 2
         self.assertEqual([3, 2], obj.hooks)
+
+    def test_multiple_inherited_with_implem(self):
+        class WorkflowObject(base.WorkflowEnabled):
+            state = self.MyWorkflow()
+
+            def __init__(self):
+                self.hooks = []
+
+            def seen_hook(self, hook_id):
+                self.hooks.append(hook_id)
+
+            @base.transition()
+            def foobar(self, *args, **kwargs):
+                pass
+
+            @base.on_leave_state('foo')
+            def hook1(self, *args, **kwargs):
+                self.seen_hook(1)
+
+        class MyFirstSub(WorkflowObject):
+            pass
+
+        class MySecondSub(WorkflowObject):
+            pass
+
+        o1 = MyFirstSub()
+        self.assertEqual(self.MyWorkflow.states.foo, o1.state)
+        o1.foobar()
+        # check: -
+        # before: 1
+        # after: 2
+        self.assertEqual([1], o1.hooks)
+
+        o2 = MySecondSub()
+        self.assertEqual(self.MyWorkflow.states.foo, o2.state)
+        o2.foobar()
+        # check: -
+        # before: 1
+        # after: 2
+        self.assertEqual([1], o2.hooks)
 
 
 

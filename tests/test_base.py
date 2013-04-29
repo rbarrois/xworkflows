@@ -180,6 +180,42 @@ class ImplementationPropertyTestCase(unittest.TestCase):
         o = MyClass()
         self.assertRaises(TypeError, getattr, o, 'foobar')
 
+    def test_copy(self):
+        def blah(obj):  # pragma: no cover
+            """Doc for blah"""
+            pass
+
+        implem = base.ImplementationProperty(
+            field_name='my_state', transition=self.foobar, workflow=None,
+            implementation=blah)
+
+        implem2 = implem.copy()
+        self.assertEqual('my_state', implem2.field_name)
+        self.assertEqual(self.foobar, implem2.transition)
+        self.assertIsNone(implem2.workflow)
+        self.assertEqual(blah, implem2.implementation)
+        self.assertEqual("Doc for blah", implem2.__doc__)
+        self.assertEqual({}, implem2.hooks)
+
+    def test_copy_exclude_hooks(self):
+        def blah(obj):  # pragma: no cover
+            """Doc for blah"""
+            pass
+
+        @base.before_transition('foo')
+        def hook():
+            pass
+
+        implem = base.ImplementationProperty(
+            field_name='my_state', transition=self.foobar, workflow=None,
+            implementation=blah)
+        # Structure: {'before': [('foo', hook)]}
+        h = hook.xworkflows_hook['before'][0][1]
+        implem.add_hook(h)
+
+        implem2 = implem.copy()
+        self.assertEqual({}, implem2.hooks)
+
 
 class TransitionWrapperTestCase(unittest.TestCase):
 

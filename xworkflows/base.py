@@ -445,6 +445,16 @@ class ImplementationProperty(object):
         self.implementation = implementation
         self.__doc__ = implementation.__doc__
 
+    def copy(self):
+        return self.__class__(
+            field_name=self.field_name,
+            transition=self.transition,
+            workflow=self.workflow,
+            implementation=self.implementation,
+            # Don't copy hooks: they'll be re-generated during metaclass __new__
+            hooks={},
+        )
+
     def add_hook(self, hook):
         self.hooks.setdefault(hook.kind, []).append(hook)
 
@@ -648,7 +658,7 @@ class ImplementationList(object):
                 in a parent class.
         """
         for trname, attr, implem in parent_implems.get_custom_implementations():
-            self.implementations[trname] = implem
+            self.implementations[trname] = implem.copy()
             self.transitions_at[trname] = attr
             self.custom_implems.add(trname)
 

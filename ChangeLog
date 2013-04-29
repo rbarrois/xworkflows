@@ -1,6 +1,11 @@
 1.0.0 (current)
 ---------------
 
+*Bugfix:*
+
+    * Fix hook registration on custom implementations while inheriting
+      :class:`~xworkflows.WorkflowEnabled`.
+
 *New:*
 
     * Add support for Python 2.6 to 3.2
@@ -10,7 +15,7 @@
     * The string representation of :class:`~xworkflows.base.State` and :class:`~xworkflows.base.StateWrapper`
       now reflects the state's name, as does their :meth:`unicode` representation in Python 2.X.
 
-0.4.1 (03/08/2012)
+0.4.1 (2012-08-03)
 ------------------
 
 *Bugfix:*
@@ -18,7 +23,7 @@
     * Support passing a :class:`~xworkflows.base.Transition` or a :class:`~xworkflows.base.State` to hooks,
       instead of its name.
 
-0.4.0 (02/08/2012)
+0.4.0 (2012-08-02)
 ------------------
 
 *New:*
@@ -43,14 +48,14 @@
     * The (private) :class:`~xworkflows.base.ImplementationWrapper` class no longer accepts the
       ``check``, ``before``, ``after`` arguments (use ``hooks`` instead)
 
-0.3.2 (05/06/2012)
+0.3.2 (2012-06-05)
 ------------------
 
 *Bugfix:*
 
     * Fix transition logging for objects whose __repr__ doesn't convert to unicode.
 
-0.3.1 (29/05/2012)
+0.3.1 (2012-05-29)
 ------------------
 
 *Bugfix:*
@@ -58,7 +63,7 @@
     * Make the :attr:`~xworkflows.base.State.title` argument mandatory in :class:`~xworkflows.base.State`
       initialization
 
-0.3.0 (30/04/2012)
+0.3.0 (2012-04-30)
 ------------------
 
 *New:*
