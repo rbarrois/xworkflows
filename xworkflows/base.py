@@ -935,8 +935,8 @@ class StateProperty(object):
         """Retrieve the current state of the 'instance' object."""
         if instance is None:
             return self
-        state = instance.__dict__.get(self.field_name,
-                                      self.workflow.initial_state)
+        state = instance.__dict__.setdefault(self.field_name,
+                                             self.workflow.initial_state)
         return StateWrapper(state, self.workflow)
 
     def __set__(self, instance, value):
@@ -944,7 +944,10 @@ class StateProperty(object):
         if not value in self.workflow.states:
             raise ValueError("Value %s is not a valid state for workflow %s." %
                     (value, self.workflow))
-        instance.__dict__[self.field_name] = value
+        if isinstance(value, basestring):
+            instance.__dict__[self.field_name] = self.workflow.states[value]
+        else:
+            instance.__dict__[self.field_name] = value
 
     def __str__(self):
         return 'StateProperty(%s, %s)' % (self.workflow, self.field_name)
