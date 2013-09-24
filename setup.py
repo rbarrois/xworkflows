@@ -7,8 +7,8 @@ from __future__ import unicode_literals
 
 import os
 import re
-import sys
 
+from setuptools import find_packages
 from setuptools import setup
 
 root_dir = os.path.abspath(os.path.dirname(__file__))
@@ -39,7 +39,7 @@ setup(
     keywords=['workflow', 'state machine', 'automaton'],
     url="https://github.com/rbarrois/xworkflows",
     download_url="https://pypi.python.org/pypi/xworkflows/",
-    packages=['xworkflows'],
+    packages=find_packages(),
     setup_requires=[
         'setuptools>=0.8',
     ],
