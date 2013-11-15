@@ -1,4 +1,4 @@
-include README
+include README.rst
 include doc/Makefile
 recursive-include doc *.py *.rst
 include doc/_static/.keep_dir
