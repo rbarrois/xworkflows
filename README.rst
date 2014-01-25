@@ -17,12 +17,14 @@ Example
 
 It allows to easilly define a workflow, attach it to a class, and use its transitions::
 
+    import xworkflows
+
     class MyWorkflow(xworkflows.Workflow):
         # A list of state names
         states = (
-            ('foo', _(u"Foo")),
-            ('bar', _(u"Bar")),
-            ('baz', _(u"Baz")),
+            ('foo', "Foo"),
+            ('bar', "Bar"),
+            ('baz', "Baz"),
         )
         # A list of transition definitions; items are (name, source states, target).
         transitions = (
@@ -36,30 +38,40 @@ It allows to easilly define a workflow, attach it to a class, and use its transi
     class MyObject(xworkflows.WorkflowEnabled):
         state = MyWorkflow()
 
-        @transition()
+        @xworkflows.transition()
         def foobar(self):
             return 42
 
         # It is possible to use another method for a given transition.
-        @transition('gobaz')
+        @xworkflows.transition('gobaz')
         def blah(self):
             return 13
 
     >>> o = MyObject()
     >>> o.state
-    State('foo')
+    <StateWrapper: <State: 'foo'>>
     >>> o.state.is_foo
     True
-
+    >>> o.state.name
+    'foo'
+    >>> o.state.title
+    'Foo'
     >>> o.foobar()
     42
     >>> o.state
-    State('bar')
-
+    <StateWrapper: <State: 'bar'>>
+    >>> o.state.name
+    'bar'
+    >>> o.state.title
+    'Bar'
     >>> o.blah()
     13
     >>> o.state
-    State('baz')
+    <StateWrapper: <State: 'baz'>>
+    >>> o.state.name
+    'baz'
+    >>> o.state.title
+    'Baz'
 
 Hooks
 -----
