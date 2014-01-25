@@ -29,13 +29,15 @@ Declaring workflows
 
 You can now define a :class:`~xworkflows.Workflow`::
 
+    import xworkflows
+
     class MyWorkflow(xworkflows.Workflow):
         states = (
-            ('init', _(u"Initial state")),
-            ('ready', _(u"Ready")),
-            ('active', _(u"Active")),
-            ('done', _(u"Done")),
-            ('cancelled', _(u"Cancelled")),
+            ('init', "Initial state"),
+            ('ready', "Ready"),
+            ('active', "Active"),
+            ('done', "Done"),
+            ('cancelled', "Cancelled"),
         )
 
         transitions = (
@@ -74,10 +76,19 @@ There is now one method per transition defined in the workflow:
 
     >>> obj = MyObject()
     >>> obj.state
-    State('init')
+    <StateWrapper: <State: 'init'>>
+    >>> obj.state.name
+    'init'
+    >>> obj.state.title
+    'Initial state'
     >>> obj.prepare()
     >>> obj.state
-    State('ready')
+    <StateWrapper: <State: 'ready'>>
+    >>> obj.state.name
+    'ready'
+    >>> obj.state.title
+    'Ready'
+
 
 As seen in the example above, calling a transition automatically updates the state
 of the workflow.
@@ -87,11 +98,11 @@ Only transitions compatible with the current state may be called:
 .. sourcecode:: pycon
 
     >>> obj.state
-    State('ready')
+    <StateWrapper: <State: 'ready'>>
     >>> obj.complete()
     Traceback (most recent call last):
         File "<stdin>", line 1, in <module>
-    InvalidTransitionError: Transition "complete" isn't available from state "ready"
+    InvalidTransitionError: Transition 'complete' isn't available from state 'ready'.
 
 
 Custom transition code
@@ -100,23 +111,28 @@ Custom transition code
 It is possible to define explicit code for a transition::
 
     class MyObject(xworkflows.WorkflowEnabled):
-        state = MyWorkflow
+        state = MyWorkflow()
 
         @xworkflows.transition()
         def activate(self, user):
             self.activated_by = user
-            print "State is %s" % self.state.name
+            print("State is %s" % self.state.name)
+
+    obj = MyObject()
 
 When calling the transition, the custom code is called before updating the state:
 
 .. sourcecode:: pycon
 
     >>> obj.state
-    State('ready')
+    <StateWrapper: <State: 'init'>>
+    >>> obj.prepare()
+    >>> obj.state
+    <StateWrapper: <State: 'ready'>>
     >>> obj.activate('blah')
     State is ready
     >>> obj.state
-    State('active')
+    <StateWrapper: <State: 'active'>>
     >>> obj.activated_by
     'blah'
 
@@ -128,7 +144,7 @@ Other functions can be hooked onto transitions, through the :func:`~xworkflows.b
 :func:`~xworkflows.on_enter_state` and :func:`~xworkflows.on_leave_state` decorators::
 
     class MyObject(xworkflows.WorkflowEnabled):
-        state = MyWorkflow
+        state = MyWorkflow()
 
         @xworkflows.before_transition('foobar', 'gobaz')
         def hook(self, *args, **kwargs):
