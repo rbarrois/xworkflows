@@ -368,5 +368,53 @@ class ImplementationWrapperTestCase(unittest.TestCase):
         self.assertIn(repr(base.noop), repr(wrapper))
 
 
+class StatePropertyTestCase(unittest.TestCase):
+    '''Tests related to the StateProperty descriptor class'''
+    
+    def setUp(self):
+        class MyWorkflow(base.Workflow):
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
+            transitions = (
+                ('foobar', 'foo', 'bar'),
+                ('gobaz', ('foo', 'bar'), 'baz'),
+                ('bazbar', 'baz', 'bar'),            )
+            initial_state = 'foo'
+
+        class MyWorkflowEnabled(base.WorkflowEnabled):
+            state = MyWorkflow()
+
+            @base.on_leave_state('foo')
+            @base.on_enter_state('bar')
+            @base.before_transition('foobar')
+            @base.after_transition('foobar')
+            def foobar_hooks(obj):
+                raise AssertionError('Hook called unexpectedly.')
+
+        self.my_wfe = MyWorkflowEnabled()
+
+    def test_initial_state(self):
+        self.assertEqual(self.my_wfe.state.name, 'foo')
+        self.assertEqual(self.my_wfe.__dict__['state'],
+                         self.my_wfe.state.workflow.states['foo'])
+
+    def test_string_set(self):
+        self.my_wfe.state = 'bar'
+        self.assertEqual(self.my_wfe.state,
+                         self.my_wfe.state.workflow.states['bar'])
+
+    def test_string_set_allows_transition(self):
+        self.my_wfe.state = 'bar'
+        self.my_wfe.gobaz()
+        self.assertEqual(self.my_wfe.state.name, 'baz')
+
+    def test_string_set_doesnt_run_hooks(self):
+        self.my_wfe.state = 'bar'
+
+        
+
 if __name__ == '__main__':  # pragma: no cover
     unittest.main()
