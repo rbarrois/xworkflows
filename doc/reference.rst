@@ -169,6 +169,21 @@ to a plain attribute:
               from typos in the code (:exc:`AttributeError` would be raised), whereas
               raw strings provide no such guarantee.
 
+  - Easily setting the current value::
+
+      >>> obj.state = MyWorkflow.states.ready
+      >>> obj.state.is_ready
+      True
+
+      >>> # Setting from a state name is also possible
+      >>> obj.state = 'ready'
+      >>> obj.state.is_ready
+      True
+
+    .. note:: Setting the state without going through transitions defeats the goal of
+              xworkflows; this feature should only be used for faster testing or when
+              saving/restoring objects from external storage.
+
 
 Using transitions
 -----------------

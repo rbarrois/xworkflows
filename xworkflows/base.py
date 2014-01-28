@@ -67,8 +67,11 @@ class StateList(object):
     def __len__(self):
         return len(self._states)
 
-    def __getitem__(self, name):
-        return self._states[name]
+    def __getitem__(self, name_or_state):
+        if isinstance(name_or_state, State):
+            return self._states[name_or_state.name]
+        else:
+            return self._states[name_or_state]
 
     def __repr__(self):
         return '%s(%r)' % (self.__class__.__name__, self._states)
@@ -883,7 +886,7 @@ class StateWrapper(object):
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self.state == other.state
-        if isinstance(other, State):
+        elif isinstance(other, State):
             return self.state == other
         elif is_string(other):
             return self.state.name == other
@@ -941,10 +944,12 @@ class StateProperty(object):
 
     def __set__(self, instance, value):
         """Set the current state of the 'instance' object."""
-        if not value in self.workflow.states:
+        try:
+            state = self.workflow.states[value]
+        except KeyError:
             raise ValueError("Value %s is not a valid state for workflow %s." %
                     (value, self.workflow))
-        instance.__dict__[self.field_name] = value
+        instance.__dict__[self.field_name] = state
 
     def __str__(self):
         return 'StateProperty(%s, %s)' % (self.workflow, self.field_name)

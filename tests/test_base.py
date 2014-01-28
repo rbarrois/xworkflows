@@ -141,6 +141,53 @@ class StateWrapperTestCase(unittest.TestCase):
         self.assertEqual(hash(self.foo.name), hash(self.sf))
 
 
+class WorkflowEnabledTestCase(unittest.TestCase):
+    def setUp(self):
+        super(WorkflowEnabledTestCase, self).setUp()
+
+        class MyWorkflow(base.Workflow):
+            states = (
+                ('foo', "Foo"),
+                ('bar', "Bar"),
+                ('baz', "Baz"),
+            )
+            transitions = (
+                ('foobar', 'foo', 'bar'),
+                ('gobaz', ('foo', 'bar'), 'baz'),
+                ('bazbar', 'baz', 'bar'),
+            )
+            initial_state = 'foo'
+
+        class MyWorkflowEnabled(base.WorkflowEnabled):
+            state = MyWorkflow()
+
+        self.foo = MyWorkflow.states.foo
+        self.bar = MyWorkflow.states.bar
+        self.wf = MyWorkflow
+        self.wfe = MyWorkflowEnabled
+
+    def test_access_state(self):
+        obj = self.wfe()
+        self.assertEqual(self.foo, obj.state)
+        self.assertTrue(obj.state.is_foo)
+        self.assertFalse(obj.state.is_bar)
+
+        obj.state = self.bar
+
+        self.assertEqual(self.bar, obj.state)
+        self.assertTrue(obj.state.is_bar)
+        self.assertFalse(obj.state.is_foo)
+
+    def test_compare_state_text(self):
+        obj = self.wfe()
+
+        obj.state = 'bar'
+
+        self.assertEqual(self.bar, obj.state)
+        self.assertTrue(obj.state.is_bar)
+        self.assertFalse(obj.state.is_foo)
+
+
 class ImplementationPropertyTestCase(unittest.TestCase):
 
     def setUp(self):
