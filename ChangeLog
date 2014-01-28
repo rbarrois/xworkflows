@@ -1,3 +1,13 @@
+1.0.3 (dev master)
+------------------
+
+*Bugfix:*
+
+    * Allow setting the current state of a :class:`~xworkflows.base.WorkflowEnabled`
+      instance from a state's name
+    * Ensure :attr:`~xworkflows.base.Workflow.states` behaves as a proper mapping
+
+
 1.0.2 (2013-09-24)
 ------------------
 
