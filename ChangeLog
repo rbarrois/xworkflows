@@ -1,3 +1,10 @@
+1.0.4 (2014-08-11)
+------------------
+
+*Bugfix:*
+
+    * Fix ``setup.py`` execution on Python3 or non-UTF locale.
+
 1.0.3 (2014-01-29)
 ------------------
 
