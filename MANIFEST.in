@@ -3,7 +3,7 @@ include requirements*.txt
 
 graft src/getconf
 
-prune doc
+prune docs
 prune tests
 
 global-exclude *.py[cod] __pycache__ .*.sw[po] *~

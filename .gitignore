@@ -1,7 +1,7 @@
 .*.swp
 *.pyc
 *.pyo
-doc/_build/
+docs/_build/
 .coverage
 *.egg-info
 build/

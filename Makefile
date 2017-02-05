@@ -58,8 +58,8 @@ coverage:
 coverage-xml-report: coverage
 	$(COVERAGE) xml "--include=$(SRC_DIR)/*.py,$(TESTS_DIR)/*.py"
 
-doc:
+docs:
 	$(MAKE) -C $(DOC_DIR) html
 
 
-.PHONY: coverage doc
+.PHONY: coverage docs
