@@ -1,6 +1,25 @@
 XWorkflows
 ==========
 
+.. image:: https://secure.travis-ci.org/rbarrois/xworkflows.png?branch=master
+    :target: http://travis-ci.org/rbarrois/xworkflows/
+
+.. image:: https://img.shields.io/pypi/v/xworkflows.svg
+    :target: https://xworkflows.readthedocs.io/en/latest/changelog.html
+    :alt: Latest Version
+
+.. image:: https://img.shields.io/pypi/pyversions/xworkflows.svg
+    :target: https://pypi.python.org/pypi/xworkflows/
+    :alt: Supported Python versions
+
+.. image:: https://img.shields.io/pypi/wheel/xworkflows.svg
+    :target: https://pypi.python.org/pypi/xworkflows/
+    :alt: Wheel status
+
+.. image:: https://img.shields.io/pypi/l/xworkflows.svg
+    :target: https://pypi.python.org/pypi/xworkflows/
+    :alt: License
+
 XWorkflows is a library to add workflows, or state machines, to Python objects.
 
 It has been fully tested with all versions of Python from 2.7 to 3.6
