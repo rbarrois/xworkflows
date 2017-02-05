@@ -16,10 +16,10 @@ if is_python3:
 else:
 
     def u(text, errors=''):
-        return unicode(text, 'utf8', errors)
+        return unicode(text, 'utf8', errors)  # noqa: F821
 
     def is_string(var):
-        return isinstance(var, basestring)
+        return isinstance(var, basestring)  # noqa: F821
 
 
 def is_callable(var):

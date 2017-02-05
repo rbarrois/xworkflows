@@ -2,10 +2,10 @@
 # Copyright (c) 2011-2013 Raphaël Barrois
 # This code is distributed under the two-clause BSD License.
 
+from . import base
+
 __version__ = '1.0.4'
 __author__ = 'Raphaël Barrois <raphael.barrois+xworkflows@polytechnique.org>'
-
-from . import base
 
 # Errors
 AbortTransition = base.AbortTransition

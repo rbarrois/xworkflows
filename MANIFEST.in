@@ -1,6 +1,12 @@
-include README.rst
-include doc/Makefile
-recursive-include doc *.py *.rst
-include doc/_static/.keep_dir
-prune doc/_build
-recursive-include tests *.py
+include CREDITS ChangeLog LICENSE README.rst
+include requirements*.txt
+
+graft src/getconf
+
+prune doc
+prune tests
+
+global-exclude *.py[cod] __pycache__ .*.sw[po] *~
+
+# Be explicit to make check-manifest happy.
+exclude Makefile tox.ini .flake8

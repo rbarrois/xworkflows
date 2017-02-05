@@ -5,14 +5,13 @@
 
 """Base components of XWorkflows."""
 
-import functools
-import inspect
 import logging
 import re
 import warnings
 
 from .compat import is_callable, is_python3, is_string, u
 from . import utils
+
 
 class WorkflowError(Exception):
     """Base class for errors from the xworkflows module."""
@@ -130,8 +129,8 @@ class TransitionList(object):
         try:
             return self._transitions[name]
         except KeyError:
-            raise AttributeError('TransitionList %s has no transition named %s.'
-                    % (self, name))
+            raise AttributeError(
+                "TransitionList %s has no transition named %s." % (self, name))
 
     def __getitem__(self, name):
         return self._transitions[name]
@@ -168,8 +167,10 @@ def _setup_states(state_definitions, prev=()):
     states = list(prev)
     for state_def in state_definitions:
         if len(state_def) != 2:
-            raise TypeError("The 'state' attribute of a workflow should be "
-                "a two-tuple of strings; got %r instead." % (state_def,))
+            raise TypeError(
+                "The 'state' attribute of a workflow should be "
+                "a two-tuple of strings; got %r instead." % (state_def,)
+            )
         name, title = state_def
         state = State(name, title)
         if any(st.name == name for st in states):
@@ -201,8 +202,10 @@ def _setup_transitions(tdef, states, prev=()):
             target = states[target]
             tr = Transition(name, source, target)
         else:
-            raise TypeError("Elements of the 'transition' attribute of a "
-                "workflow should be three-tuples; got %r instead." % (transition,))
+            raise TypeError(
+                "Elements of the 'transition' attribute of a "
+                "workflow should be three-tuples; got %r instead." % (transition,)
+            )
 
         if any(prev_tr.name == tr.name for prev_tr in trs):
             # Replacing an existing state
@@ -241,7 +244,8 @@ class Hook(object):
     """
 
     def __init__(self, kind, function, *names, **kwargs):
-        assert kind in (HOOK_BEFORE, HOOK_AFTER, HOOK_CHECK,
+        assert kind in (
+            HOOK_BEFORE, HOOK_AFTER, HOOK_CHECK,
             HOOK_ON_ENTER, HOOK_ON_LEAVE)
 
         self.kind = kind
@@ -290,7 +294,8 @@ class Hook(object):
         """Equality is based on priority, function and kind."""
         if not isinstance(other, Hook):
             return NotImplemented
-        return (self.priority == other.priority
+        return (
+            self.priority == other.priority
             and self.function == other.function
             and self.kind == other.kind
             and self.names == other.names
@@ -340,7 +345,7 @@ class ImplementationWrapper(object):
     """
 
     def __init__(self, instance, field_name, transition, workflow,
-            implementation, hooks=None):
+                 implementation, hooks=None):
         self.instance = instance
         self.field_name = field_name
         self.transition = transition
@@ -383,7 +388,8 @@ class ImplementationWrapper(object):
         return self.implementation(self.instance, *args, **kwargs)
 
     def _log_transition(self, from_state, *args, **kwargs):
-        self.workflow.log_transition(self.transition, from_state, self.instance,
+        self.workflow.log_transition(
+            self.transition, from_state, self.instance,
             *args, **kwargs)
 
     def _post_transition(self, result, *args, **kwargs):
@@ -421,7 +427,8 @@ class ImplementationWrapper(object):
         return True
 
     def __repr__(self):
-        return "<%s for %r on %r: %r>" % (self.__class__.__name__,
+        return "<%s for %r on %r: %r>" % (
+            self.__class__.__name__,
             self.transition.name, self.field_name, self.implementation)
 
 
@@ -439,8 +446,7 @@ class ImplementationProperty(object):
         implementation (callable): the code to invoke between 'before' and the
             state update.
     """
-    def __init__(self, field_name, transition, workflow, implementation,
-            hooks=None):
+    def __init__(self, field_name, transition, workflow, implementation, hooks=None):
         self.field_name = field_name
         self.transition = transition
         self.workflow = workflow
@@ -470,12 +476,14 @@ class ImplementationProperty(object):
                 "Unable to apply transition '%s' to object %r, which is not "
                 "attached to a Workflow." % (self.transition.name, instance))
 
-        return self.workflow.implementation_class(instance,
+        return self.workflow.implementation_class(
+            instance,
             self.field_name, self.transition, self.workflow,
             self.implementation, self.hooks)
 
     def __repr__(self):
-        return "<%s for '%s' on '%s': %s>" % (self.__class__.__name__,
+        return "<%s for '%s' on '%s': %s>" % (
+            self.__class__.__name__,
             self.transition.name, self.field_name, self.implementation)
 
 
@@ -508,7 +516,8 @@ class TransitionWrapper(object):
 def transition(trname='', field='', check=None, before=None, after=None):
     """Decorator to declare a function as a transition implementation."""
     if is_callable(trname):
-        raise ValueError("The @transition decorator should be called as "
+        raise ValueError(
+            "The @transition decorator should be called as "
             "@transition(['transition_name'], **kwargs)")
     if check or before or after:
         warnings.warn(
@@ -517,8 +526,7 @@ def transition(trname='', field='', check=None, before=None, after=None):
             "@after_transition decorators.",
             DeprecationWarning,
             stacklevel=2)
-    return TransitionWrapper(trname, field=field,
-        check=check, before=before, after=after)
+    return TransitionWrapper(trname, field=field, check=check, before=before, after=after)
 
 
 def _make_hook_dict(fun):
@@ -703,9 +711,10 @@ class ImplementationList(object):
             if self.should_collect(value):
                 transition = self.workflow.transitions[value.trname]
 
-                if (value.trname in self.implementations
-                    and value.trname in self.custom_implems
-                    and name != self.transitions_at[value.trname]):
+                if (
+                        value.trname in self.implementations
+                        and value.trname in self.custom_implems
+                        and name != self.transitions_at[value.trname]):
                     # We already have an implementation registered.
                     other_implem_at = self.transitions_at[value.trname]
                     raise ValueError(
@@ -761,13 +770,13 @@ class ImplementationList(object):
         if isinstance(other, ImplementationProperty):
             # Overriding another custom implementation for the same transition
             # and field
-            return (other.transition == implem.transition
-                and other.field_name == self.state_field)
+            return (other.transition == implem.transition and other.field_name == self.state_field)
 
         elif isinstance(other, TransitionWrapper):
             # Overriding the definition that led to adding the current
             # ImplementationProperty.
-            return (other.trname == implem.transition.name
+            return (
+                other.trname == implem.transition.name
                 and (not other.field or other.field == self.state_field)
                 and other.func == implem.implementation)
 
@@ -810,10 +819,12 @@ class WorkflowMeta(type):
 
         new_class = super(WorkflowMeta, mcs).__new__(mcs, name, bases, attrs)
 
-        new_class.states = _setup_states(state_defs,
-            getattr(new_class, 'states', []))
-        new_class.transitions = _setup_transitions(transitions_defs,
-            new_class.states, getattr(new_class, 'transitions', []))
+        new_class.states = _setup_states(state_defs, getattr(new_class, 'states', []))
+        new_class.transitions = _setup_transitions(
+            transitions_defs,
+            new_class.states,
+            getattr(new_class, 'transitions', []),
+        )
         if initial_state is not None:
             new_class.initial_state = new_class.states[initial_state]
 
@@ -852,7 +863,8 @@ class BaseWorkflow(object):
             instance_repr = u(repr(instance), 'ignore')
         except (UnicodeEncodeError, UnicodeDecodeError):
             instance_repr = u("<bad repr>")
-        logger.info(u("%s performed transition %s.%s (%s -> %s)"), instance_repr,
+        logger.info(
+            u("%s performed transition %s.%s (%s -> %s)"), instance_repr,
             self.__class__.__name__, transition.name, from_state.name,
             transition.target.name)
 
@@ -947,8 +959,7 @@ class StateProperty(object):
         try:
             state = self.workflow.states[value]
         except KeyError:
-            raise ValueError("Value %s is not a valid state for workflow %s." %
-                    (value, self.workflow))
+            raise ValueError("Value %s is not a valid state for workflow %s." % (value, self.workflow))
         instance.__dict__[self.field_name] = state
 
     def __str__(self):
