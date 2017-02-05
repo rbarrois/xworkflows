@@ -34,7 +34,9 @@ Links
 Example
 -------
 
-It allows to easilly define a workflow, attach it to a class, and use its transitions::
+It allows to easilly define a workflow, attach it to a class, and use its transitions:
+
+.. code-block:: python
 
     import xworkflows
 
@@ -66,6 +68,8 @@ It allows to easilly define a workflow, attach it to a class, and use its transi
         def blah(self):
             return 13
 
+.. code-block:: python
+
     >>> o = MyObject()
     >>> o.state
     <StateWrapper: <State: 'foo'>>
@@ -96,8 +100,10 @@ Hooks
 -----
 
 Custom functions can be hooked to transactions, in order to run before/after a transition,
-when entering a state, when leaving a state, ...::
+when entering a state, when leaving a state, ...:
 
+
+.. code-block:: python
 
     class MyObject(xworkflows.WorkflowEnabled):
 
