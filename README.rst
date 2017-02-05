@@ -3,7 +3,7 @@ XWorkflows
 
 XWorkflows is a library to add workflows, or state machines, to Python objects.
 
-It has been fully tested with all versions of Python from 2.7 to 3.3
+It has been fully tested with all versions of Python from 2.7 to 3.6
 
 Links
 -----
