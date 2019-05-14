@@ -23,4 +23,8 @@ else:
 
 
 def is_callable(var):
-    return isinstance(var, collections.Callable)
+    try:
+        return isinstance(var, collections.Callable)
+    except AttributeError:
+        return False
+
