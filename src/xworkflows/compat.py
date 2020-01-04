@@ -2,18 +2,20 @@
 # Copyright (c) 2011-2013 Raphaël Barrois
 # This code is distributed under the two-clause BSD License.
 
-import collections
 import sys
 
 is_python3 = (sys.version_info[0] >= 3)
 
 if is_python3:
+    from collections.abc import Callable
+
     def u(text, errors=''):
         return str(text)
 
     def is_string(var):
         return isinstance(var, str)
 else:
+    from collections import Callable
 
     def u(text, errors=''):
         return unicode(text, 'utf8', errors)  # noqa: F821
@@ -23,4 +25,4 @@ else:
 
 
 def is_callable(var):
-    return isinstance(var, collections.Callable)
+    return isinstance(var, Callable)
