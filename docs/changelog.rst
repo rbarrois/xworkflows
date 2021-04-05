@@ -1,4 +1,0 @@
-ChangeLog
-=========
-
-.. include:: ../ChangeLog

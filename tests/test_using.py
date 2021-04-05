@@ -5,7 +5,7 @@
 
 import warnings
 
-from .compat import is_python3, unittest, u
+from .compat import unittest, u
 
 from xworkflows import base
 

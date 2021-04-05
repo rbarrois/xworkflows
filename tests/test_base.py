@@ -401,15 +401,15 @@ class ImplementationWrapperTestCase(unittest.TestCase):
 
     def test_current_state(self):
         wrapper = base.ImplementationWrapper(self.dummy, 'state1', None, None,
-            base.noop)
+                                             base.noop)
         self.assertEqual('foo', wrapper.current_state)
         self.assertEqual(base.noop.__doc__, wrapper.__doc__)
 
     def test_repr(self):
         wrapper = base.ImplementationWrapper(self.dummy, 'state1',
-            base.Transition('foobar', [base.State('foo', 'Foo')],
-                base.State('bar', 'Bar')), None,
-            base.noop)
+                                             base.Transition('foobar', [base.State('foo', 'Foo')],
+                                                             base.State('bar', 'Bar')), None,
+                                             base.noop)
         self.assertIn('foobar', repr(wrapper))
         self.assertIn('state1', repr(wrapper))
         self.assertIn(repr(base.noop), repr(wrapper))
