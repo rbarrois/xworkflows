@@ -9,7 +9,7 @@ import logging
 import re
 import warnings
 
-from .compat import is_callable, is_python3, is_string, u
+from .compat import is_callable, is_string, u
 from . import utils
 
 
@@ -922,10 +922,6 @@ class StateWrapper(object):
         else:
             return getattr(self.state, attr)
 
-    if not is_python3:
-        def __unicode__(self):
-            return u(str(self))
-
     def __hash__(self):
         # A StateWrapper should compare equal to its name.
         return hash(self.state.name)
@@ -1082,5 +1078,6 @@ class BaseWorkflowEnabled(object):
 #
 # class WorkflowEnabled(metaclass=WorkflowEnabledMeta):
 #     pass
+# Will migrate to Python3 in a separate PR
 
 WorkflowEnabled = WorkflowEnabledMeta('WorkflowEnabled', (BaseWorkflowEnabled,), {})

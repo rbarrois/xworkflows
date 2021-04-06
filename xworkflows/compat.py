@@ -1,25 +1,17 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2011-2013 Raphaël Barrois
+# Copyright (c) 2021 LinuxForHealth
 # This code is distributed under the two-clause BSD License.
 
 import collections
-import sys
 
-is_python3 = (sys.version_info[0] >= 3)
 
-if is_python3:
-    def u(text, errors=''):
-        return str(text)
+def u(text, errors=''):
+    return str(text)
 
-    def is_string(var):
-        return isinstance(var, str)
-else:
 
-    def u(text, errors=''):
-        return unicode(text, 'utf8', errors)  # noqa: F821
-
-    def is_string(var):
-        return isinstance(var, basestring)  # noqa: F821
+def is_string(var):
+    return isinstance(var, str)
 
 
 def is_callable(var):
