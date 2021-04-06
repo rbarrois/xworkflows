@@ -8,3 +8,5 @@ build/
 dist/
 htmlcov/
 MANIFEST
+.idea
+venv/

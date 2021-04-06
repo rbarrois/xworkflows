@@ -3,7 +3,7 @@
 # Copyright (c) 2021 LinuxForHealth
 # This code is distributed under the two-clause BSD License.
 
-import collections
+from collections.abc import Callable
 
 
 def u(text, errors=''):
@@ -15,4 +15,4 @@ def is_string(var):
 
 
 def is_callable(var):
-    return isinstance(var, collections.Callable)
+    return isinstance(var, Callable)
