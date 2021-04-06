@@ -1,4 +1,0 @@
--e .
--rrequirements_test.txt
-
-tox

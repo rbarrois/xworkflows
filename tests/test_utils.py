@@ -3,9 +3,7 @@
 # Copyright (c) 2011-2013 Raphaël Barrois
 # This code is distributed under the two-clause BSD License.
 
-import warnings
-
-from .compat import is_python3, unittest, u
+from .compat import unittest
 
 from xworkflows import utils
 
