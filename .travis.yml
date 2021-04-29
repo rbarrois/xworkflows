@@ -16,6 +16,8 @@ matrix:
     - python: "3.9"
       env: TOXENV=py39
     - python: "3.9"
+      env: TOXENV=docs
+    - python: "3.9"
       env: TOXENV=lint
 
 install:
