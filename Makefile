@@ -33,7 +33,7 @@ testall:
 
 
 test:
-	python -W default setup.py test
+	python -W default -m unittest --verbose
 
 .PHONY: test testall
 
