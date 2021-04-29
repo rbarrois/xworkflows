@@ -36,7 +36,7 @@ class State(object):
         name (str): the name of the state
         title (str): the human-readable title for the state
     """
-    STATE_NAME_RE = re.compile('\w+$')
+    STATE_NAME_RE = re.compile(r'\w+$')
 
     def __init__(self, name, title):
         if not self.STATE_NAME_RE.match(name):
