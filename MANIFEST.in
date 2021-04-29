@@ -1,12 +1,13 @@
 include CREDITS ChangeLog LICENSE README.rst
 include requirements*.txt
 
-graft src/getconf
+graft src/xworkflows
 
-prune docs
-prune tests
+graft docs
+graft tests
 
+prune docs/_build
 global-exclude *.py[cod] __pycache__ .*.sw[po] *~
 
 # Be explicit to make check-manifest happy.
-exclude Makefile tox.ini .flake8
+include Makefile tox.ini .flake8
