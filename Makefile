@@ -44,8 +44,8 @@ check_manifest:
 
 # Note: we run the linter in two runs, because our __init__.py files has specific warnings we want to exclude
 flake8:
-	$(FLAKE8) --config .flake8 --exclude $(SRC_DIR)/__init__.py $(SRC_DIR)
-	$(FLAKE8) --config .flake8 --ignore F401 $(SRC_DIR)/__init__.py
+	$(FLAKE8) --exclude $(SRC_DIR)/__init__.py $(SRC_DIR)
+	$(FLAKE8) --ignore F401 $(SRC_DIR)/__init__.py
 
 .PHONY: lint check_manifest flake8
 

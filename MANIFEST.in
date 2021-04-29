@@ -9,5 +9,4 @@ graft tests
 prune docs/_build
 global-exclude *.py[cod] __pycache__ .*.sw[po] *~
 
-# Be explicit to make check-manifest happy.
-include Makefile tox.ini .flake8
+include Makefile tox.ini
