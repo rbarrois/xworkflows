@@ -26,7 +26,10 @@ setup-dev:
 	pip install --upgrade -e .[dev,doc]
 	pip freeze
 
-.PHONY: all default clean setup-dev
+release:
+	fullrelease
+
+.PHONY: all default clean setup-dev release
 
 testall:
 	tox
