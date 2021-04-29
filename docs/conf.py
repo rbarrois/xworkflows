@@ -13,6 +13,8 @@
 
 import sys, os
 
+import xworkflows
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -48,18 +50,8 @@ copyright = u'2011-2013, Raphaël Barrois'
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-root_dir = os.path.abspath(os.path.dirname(__file__))
-def get_version():
-    import re
-    version_re = re.compile(r"^__version__ = '([\w_.-]+)'$")
-    with open(os.path.join(root_dir, os.pardir, 'xworkflows', '__init__.py')) as f:
-        for line in f:
-            match = version_re.match(line[:-1])
-            if match:
-                return match.groups()[0]
-    return '0.0.0'
-
-release = get_version()
+release = xworkflows.__version__
+# The short X.Y version
 version = '.'.join(release.split('.')[:2])
 
 
