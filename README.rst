@@ -1,8 +1,11 @@
 XWorkflows
 ==========
 
-.. image:: https://secure.travis-ci.org/rbarrois/xworkflows.png?branch=master
-    :target: http://travis-ci.org/rbarrois/xworkflows/
+.. image:: https://github.com/rbarrois/xworkflows/workflows/Test/badge.svg
+    :target: https://github.com/rbarrois/xworkflows/actions?query=workflow%3ATest
+
+.. image:: https://github.com/rbarrois/xworkflows/workflows/Check/badge.svg
+    :target: https://github.com/rbarrois/xworkflows/actions?query=workflow%3ACheck
 
 .. image:: https://img.shields.io/pypi/v/xworkflows.svg
     :target: https://xworkflows.readthedocs.io/en/latest/changelog.html
