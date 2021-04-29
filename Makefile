@@ -21,12 +21,12 @@ clean:
 	@rm -rf tmp_test/
 
 
-update:
+setup-dev:
 	pip install --upgrade pip setuptools
 	pip install --upgrade -r requirements_dev.txt
 	pip freeze
 
-.PHONY: all default clean update
+.PHONY: all default clean setup-dev
 
 testall:
 	tox
