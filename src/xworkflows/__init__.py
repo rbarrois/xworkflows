@@ -4,8 +4,16 @@
 
 from . import base
 
-__version__ = '1.0.4'
 __author__ = 'Raphaël Barrois <raphael.barrois+xworkflows@polytechnique.org>'
+try:
+    # Python 3.8+
+    from importlib.metadata import version
+
+    __version__ = version("xworkflows")
+except ImportError:
+    import pkg_resources
+
+    __version__ = pkg_resources.get_distribution("xworkflows").version
 
 # Errors
 AbortTransition = base.AbortTransition
