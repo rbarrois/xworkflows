@@ -2,7 +2,6 @@
 # Copyright (c) 2011-2013 Raphaël Barrois
 # This code is distributed under the two-clause BSD License.
 
-import collections
 import sys
 
 is_python3 = (sys.version_info[0] >= 3)
@@ -20,7 +19,3 @@ else:
 
     def is_string(var):
         return isinstance(var, basestring)  # noqa: F821
-
-
-def is_callable(var):
-    return isinstance(var, collections.Callable)

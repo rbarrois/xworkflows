@@ -9,7 +9,7 @@ import logging
 import re
 import warnings
 
-from .compat import is_callable, is_python3, is_string, u
+from .compat import is_python3, is_string, u
 from . import utils
 
 
@@ -515,7 +515,7 @@ class TransitionWrapper(object):
 
 def transition(trname='', field='', check=None, before=None, after=None):
     """Decorator to declare a function as a transition implementation."""
-    if is_callable(trname):
+    if callable(trname):
         raise ValueError(
             "The @transition decorator should be called as "
             "@transition(['transition_name'], **kwargs)")
@@ -751,7 +751,7 @@ class ImplementationList(object):
 
     def register_hooks(self, cls):
         for field, value in utils.iterclass(cls):
-            if is_callable(value) and hasattr(value, 'xworkflows_hook'):
+            if callable(value) and hasattr(value, 'xworkflows_hook'):
                 self.register_function_hooks(value)
 
     def register_function_hooks(self, func):
