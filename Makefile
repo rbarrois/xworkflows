@@ -33,7 +33,7 @@ testall:
 
 
 test:
-	python -W default -m unittest --verbose
+	python -W default -m unittest discover --top-level-directory . --verbose $(TESTS_DIR)
 
 .PHONY: test testall
 
